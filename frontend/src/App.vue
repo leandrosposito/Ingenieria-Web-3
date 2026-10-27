@@ -21,6 +21,7 @@ watch(
     <nav>
       <RouterLink to="/">Inicio</RouterLink>
       <RouterLink to="/monitoreo">Monitoreo</RouterLink>
+      <RouterLink to="/ordenes">Órdenes</RouterLink>
       <RouterLink to="/alarmas">Alarmas</RouterLink>
       <RouterLink to="/conciliaciones">Conciliaciones</RouterLink>
     </nav>
