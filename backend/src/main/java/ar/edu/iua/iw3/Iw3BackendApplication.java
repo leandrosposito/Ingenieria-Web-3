@@ -2,9 +2,10 @@ package ar.edu.iua.iw3;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class})
 @EnableAsync // habilita @Async (el mail de la alarma se manda en otro hilo)
 public class Iw3BackendApplication {
 
