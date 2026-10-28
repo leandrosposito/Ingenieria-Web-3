@@ -1,14 +1,20 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { api } from '../api/http'
+import { ESTADOS_ORDEN } from '../utils/estados'
 import { formatearFechaHora, formatearNumero } from '../utils/formato'
 
 const ordenes = ref([])
+const filtroEstado = ref('')
 const error = ref('')
 
 async function cargarOrdenes() {
+  const params = new URLSearchParams()
+  if (filtroEstado.value) params.set('estado', filtroEstado.value)
+  const ruta = params.toString() ? `/api/v1/ordenes?${params}` : '/api/v1/ordenes'
+
   try {
-    ordenes.value = await api('/api/v1/ordenes')
+    ordenes.value = await api(ruta)
     error.value = ''
   } catch (e) {
     error.value = e.message
@@ -24,6 +30,13 @@ onMounted(cargarOrdenes)
   <p v-if="error" class="error">{{ error }}</p>
 
   <div class="acciones">
+    <label for="filtro-estado">Estado:</label>
+    <select id="filtro-estado" v-model="filtroEstado" @change="cargarOrdenes">
+      <option value="">Todos</option>
+      <option v-for="e in ESTADOS_ORDEN" :key="e.valor" :value="e.valor">
+        {{ e.texto }}
+      </option>
+    </select>
     <button @click="cargarOrdenes">Actualizar lista</button>
   </div>
 
@@ -58,5 +71,5 @@ onMounted(cargarOrdenes)
 
 <style scoped>
 .ayuda { color: #52606d; }
-.acciones { margin-bottom: 0.75rem; }
+.acciones { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
 </style>
