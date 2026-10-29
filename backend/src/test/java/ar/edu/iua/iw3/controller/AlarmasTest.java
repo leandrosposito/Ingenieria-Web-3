@@ -14,9 +14,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
@@ -139,5 +141,59 @@ class AlarmasTest {
 
         assertTrue(ms < 1000, "el dato tardo " + ms + " ms: estaria esperando al mail");
         assertTrue(mailEnviado.await(5, TimeUnit.SECONDS), "el mail igual tiene que salir");
+    }
+
+    @Test
+    void dosAceptacionesConcurrentesDan200Y409ConservandoElPrimerOperador() throws Exception {
+        reset(mailSender);
+        TestAuth.ordenEnCarga(mvc, 8006, "ALA006", 10000);
+        TestAuth.dato(mvc, 8006, 1000, 75, 3000).andExpect(jsonPath("$.aceptado").value(true));
+
+        // Obtenemos el id de la alarma pendiente
+        String pendientes = TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8006)]", hasSize(1)))
+                .andReturn().getResponse().getContentAsString();
+        int id = ((java.util.List<Integer>) JsonPath.read(pendientes, "$[?(@.numeroOrden==8006)].id")).get(0);
+
+        // Dos hilos intentan aceptar la misma alarma al mismo tiempo.
+        // El lock pesimista garantiza que solo uno la acepta: el segundo recibe 409.
+        CountDownLatch listos = new CountDownLatch(2);   // sincroniza el arranque
+        CountDownLatch terminados = new CountDownLatch(2);
+        AtomicInteger respuesta200 = new AtomicInteger(0);
+        AtomicInteger respuesta409 = new AtomicInteger(0);
+
+        String url = ALARMAS + "/" + id + "/aceptar";
+        Runnable aceptar = () -> {
+            try {
+                listos.countDown();
+                listos.await(5, TimeUnit.SECONDS); // los dos hilos arrancan juntos
+                int estado = TestAuth.post(mvc, "operador", url, "{}")
+                        .andReturn().getResponse().getStatus();
+                if (estado == 200) respuesta200.incrementAndGet();
+                if (estado == 409) respuesta409.incrementAndGet();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                terminados.countDown();
+            }
+        };
+
+        Thread t1 = new Thread(aceptar, "operador-1");
+        Thread t2 = new Thread(aceptar, "operador-2");
+        t1.start();
+        t2.start();
+        assertTrue(terminados.await(10, TimeUnit.SECONDS), "los hilos no terminaron a tiempo");
+
+        // Exactamente uno recibe 200 y el otro 409
+        assertEquals(1, respuesta200.get(), "exactamente un operador debio recibir 200");
+        assertEquals(1, respuesta409.get(), "el segundo operador debio recibir 409");
+
+        // El campo usuarioAceptacion queda con "operador" (el unico usuario de prueba que la acepto)
+        // y el estado es ACEPTADA: el segundo intento no piso los datos del primero.
+        String aceptadas = TestAuth.get(mvc, "operador", ALARMAS + "?estado=ACEPTADA")
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String usuario = ((java.util.List<String>) JsonPath.read(aceptadas, "$[?(@.numeroOrden==8006)].usuarioAceptacion")).get(0);
+        assertEquals("operador", usuario, "el usuarioAceptacion no debio pisarse");
     }
 }
