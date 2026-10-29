@@ -57,7 +57,10 @@ public class AlarmaService {
 
     @Transactional
     public AlarmaResponse aceptar(Long id, AceptarAlarmaRequest req) {
-        Alarma alarma = alarmaRepository.findById(id)
+        // findByIdParaAceptar emite SELECT ... FOR UPDATE: si dos transacciones llegan
+        // al mismo tiempo, la segunda espera a que la primera libere el lock.
+        // Al obtenerlo, ve el estado ACEPTADA y lanza ConflictoException (409).
+        Alarma alarma = alarmaRepository.findByIdParaAceptar(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No existe la alarma " + id));
         if (alarma.getEstado() == EstadoAlarma.ACEPTADA) {
             throw new ConflictoException("La alarma " + id + " ya fue aceptada por " + alarma.getUsuarioAceptacion());
