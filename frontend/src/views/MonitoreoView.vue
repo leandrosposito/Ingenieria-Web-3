@@ -4,6 +4,10 @@ import { api } from '../api/http'
 import { usePolling } from '../composables/usePolling'
 import { formatearDuracion, formatearEta, formatearNumero, formatearFechaHora } from '../utils/formato'
 
+// Contador de pedidos: cada vez que se lanza uno se incrementa.
+// cargar() captura su valor al inicio y solo aplica el resultado si sigue siendo el último.
+let secuencia = 0
+
 const ESTADOS = [
   { valor: '', texto: 'Todos' },
   { valor: 'PENDIENTE_PESAJE_INICIAL', texto: '1 · Pendiente de pesaje inicial' },
@@ -33,14 +37,21 @@ const error = ref('')
 const actualizado = ref(null)
 
 async function cargar() {
+  // Asignamos un número de secuencia a este pedido antes de lanzarlo.
+  // Si mientras espera la respuesta llega otro pedido, secuencia ya valdrá más
+  // y descartamos el resultado viejo: la pantalla siempre muestra el último filtro.
+  const miSecuencia = ++secuencia
   const params = new URLSearchParams({ ordenarPor: filtros.ordenarPor, direccion: filtros.direccion })
   if (filtros.estado) params.set('estado', filtros.estado)
   if (filtros.patente) params.set('patente', filtros.patente)
   try {
-    ordenes.value = await api(`/api/v1/monitoreo?${params}`)
+    const resultado = await api(`/api/v1/monitoreo?${params}`)
+    if (miSecuencia !== secuencia) return // respuesta vieja: la descartamos
+    ordenes.value = resultado
     error.value = ''
     actualizado.value = new Date().toLocaleTimeString('es-AR')
   } catch (e) {
+    if (miSecuencia !== secuencia) return
     error.value = e.message
   }
 }
