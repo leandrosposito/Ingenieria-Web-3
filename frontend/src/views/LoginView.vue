@@ -30,6 +30,7 @@ async function ingresar() {
 <template>
   <form class="login" @submit.prevent="ingresar">
     <h1>Ingresar</h1>
+    <p v-if="auth.avisoSesion" class="aviso">{{ auth.avisoSesion }}</p>
     <label>
       Usuario
       <input v-model="username" autocomplete="username" required />
@@ -42,3 +43,15 @@ async function ingresar() {
     <button type="submit" :disabled="enviando">Entrar</button>
   </form>
 </template>
+
+<style scoped>
+.aviso {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+</style>
