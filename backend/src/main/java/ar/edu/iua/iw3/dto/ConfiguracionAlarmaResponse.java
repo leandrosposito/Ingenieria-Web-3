@@ -1,9 +1,9 @@
 package ar.edu.iua.iw3.dto;
 
 import ar.edu.iua.iw3.model.ConfiguracionAlarma;
+import ar.edu.iua.iw3.service.ConfiguracionAlarmaService;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 public record ConfiguracionAlarmaResponse(
@@ -14,6 +14,6 @@ public record ConfiguracionAlarmaResponse(
 
     public static ConfiguracionAlarmaResponse desde(ConfiguracionAlarma c) {
         return new ConfiguracionAlarmaResponse(c.getTemperaturaUmbral(),
-                Arrays.asList(c.getDestinatarios().split(",")), c.getActualizadoPor(), c.getFechaActualizacion());
+                ConfiguracionAlarmaService.parsearDestinatarios(c.getDestinatarios()), c.getActualizadoPor(), c.getFechaActualizacion());
     }
 }

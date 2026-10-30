@@ -28,6 +28,13 @@ public class AlarmaService {
     private final ConfiguracionAlarmaService configuracion;
 
     /**
+     * Parsea destinatarios separados por coma normalizando espacios y descartando vacios.
+     */
+    public static List<String> parsearDestinatarios(String destinatarios) {
+        return ConfiguracionAlarmaService.parsearDestinatarios(destinatarios);
+    }
+
+    /**
      * Se llama con cada dato valido, dentro de la transaccion de CargaService. Si supera el umbral y la orden no
      * tiene una alarma pendiente, crea la alarma y publica el evento. La orden esta bloqueada, asi que dos datos
      * simultaneos no crean dos alarmas.
@@ -44,7 +51,7 @@ public class AlarmaService {
         }
         Alarma alarma = alarmaRepository.save(new Alarma(orden, temperatura, umbral));
         publisher.publishEvent(new AlarmaCreada(alarma.getId(), orden.getNumeroOrden(), temperatura, umbral,
-                List.of(config.getDestinatarios().split(","))));
+                parsearDestinatarios(config.getDestinatarios())));
     }
 
     @Transactional(readOnly = true)
