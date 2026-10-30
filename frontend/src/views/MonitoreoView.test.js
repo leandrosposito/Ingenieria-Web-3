@@ -42,7 +42,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it.each(['respuesta', 'error'])('ignora una %s vieja cuando cambia la patente', async (tipo) => {
+it.each(['respuesta', 'error'])('ignora %s de un pedido anterior cuando cambia la patente', async (tipo) => {
   let resolverViejo
   const viejo = new Promise((resolve) => { resolverViejo = resolve })
   const fetchFalso = vi.fn()

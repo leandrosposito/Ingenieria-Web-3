@@ -25,7 +25,7 @@ public interface AlarmaRepository extends JpaRepository<Alarma, Long> {
      * Busca la alarma y la bloquea con SELECT ... FOR UPDATE.
      * Si dos transacciones intentan aceptar la misma alarma al mismo tiempo,
      * la segunda se bloquea hasta que la primera termine (commit o rollback).
-     * Cuando la segunda desbloquea, ve el estado ya actualizado y devuelve 409.
+     * Si la primera confirma la aceptacion, el servicio rechaza la segunda con 409.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Alarma a WHERE a.id = :id")

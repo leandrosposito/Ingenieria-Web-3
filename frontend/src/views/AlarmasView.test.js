@@ -121,7 +121,7 @@ it('conserva el error 409 despues de recargar y del siguiente polling', async ()
   expect(pantalla.text()).toContain('Ya fue aceptada por admin')
 })
 
-it.each(['respuesta', 'error'])('ignora una %s vieja al cambiar el filtro', async (tipo) => {
+it.each(['respuesta', 'error'])('ignora %s de un pedido anterior al cambiar el filtro', async (tipo) => {
   const viejo = pedidoPendiente()
   const fetchFalso = vi.fn()
     .mockReturnValueOnce(viejo.promesa)
