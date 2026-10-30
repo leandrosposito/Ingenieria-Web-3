@@ -1,5 +1,7 @@
 package ar.edu.iua.iw3.controller;
 
+import ar.edu.iua.iw3.service.AlarmaService;
+import ar.edu.iua.iw3.service.ConfiguracionAlarmaService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +12,12 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.reset;
@@ -93,5 +99,20 @@ class ConfiguracionAlarmaTest {
         } finally {
             TestAuth.put(mvc, "admin", CONFIG, ORIGINAL).andExpect(status().isOk());
         }
+    }
+
+    @Test
+    void parsearDestinatariosEliminaEspaciosInicialesYDescartaVacios() {
+        String entrada = "  a@x.com ,  b@y.com , , c@z.com  ";
+        List<String> resultado = ConfiguracionAlarmaService.parsearDestinatarios(entrada);
+        assertEquals(List.of("a@x.com", "b@y.com", "c@z.com"), resultado);
+        assertEquals(List.of("a@x.com", "b@y.com", "c@z.com"), AlarmaService.parsearDestinatarios(entrada));
+    }
+
+    @Test
+    void parsearDestinatariosCasosBorde() {
+        assertTrue(ConfiguracionAlarmaService.parsearDestinatarios("").isEmpty());
+        assertTrue(ConfiguracionAlarmaService.parsearDestinatarios("   ,  , ").isEmpty());
+        assertTrue(ConfiguracionAlarmaService.parsearDestinatarios(null).isEmpty());
     }
 }
