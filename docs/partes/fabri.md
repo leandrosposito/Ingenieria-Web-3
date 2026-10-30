@@ -83,10 +83,10 @@ Se aplicó a `buscarParaMonitoreo` (monitoreo) y a las dos consultas del listado
 
 ```powershell
 cd backend
-.\mvnw.cmd test     # 46 tests en total. Los de Fabri: CalculosMonitoreoTest, MonitoreoTest, AlarmasTest y ConfiguracionAlarmaTest (con el mail simulado)
+.\mvnw.cmd test     # 49 tests en total. Los de Fabri: CalculosMonitoreoTest, MonitoreoTest, AlarmasTest y ConfiguracionAlarmaTest (con el mail simulado)
 
 cd ..\frontend
-npm test            # 16 tests (incluye AlarmasView.test.js: el formulario de configuración)
+npm test            # 33 tests: incluye polling, monitoreo, configuración y aceptación de alarmas
 npm run build
 ```
 

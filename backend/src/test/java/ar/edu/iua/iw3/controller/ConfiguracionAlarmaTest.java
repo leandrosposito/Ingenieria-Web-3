@@ -1,6 +1,5 @@
 package ar.edu.iua.iw3.controller;
 
-import ar.edu.iua.iw3.service.AlarmaService;
 import ar.edu.iua.iw3.service.ConfiguracionAlarmaService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -106,7 +105,6 @@ class ConfiguracionAlarmaTest {
         String entrada = "  a@x.com ,  b@y.com , , c@z.com  ";
         List<String> resultado = ConfiguracionAlarmaService.parsearDestinatarios(entrada);
         assertEquals(List.of("a@x.com", "b@y.com", "c@z.com"), resultado);
-        assertEquals(List.of("a@x.com", "b@y.com", "c@z.com"), AlarmaService.parsearDestinatarios(entrada));
     }
 
     @Test

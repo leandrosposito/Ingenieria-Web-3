@@ -1,5 +1,21 @@
 # Plan de trabajo — Fabri (días 1 a 14)
 
+## Estado de la revisión del 30/10/2026
+
+El diagnóstico y el calendario de abajo se conservan como plan inicial. Ya se implementaron
+el bloqueo al aceptar alarmas, la normalización de destinatarios, la protección contra
+respuestas viejas en Monitoreo y Alarmas, y el polling sin superposición entre sus turnos.
+Los errores de aceptación se muestran por separado para que una recarga no los borre.
+
+Verificación local: 49 tests de backend y 33 de frontend pasan; el build de Vite también.
+El test concurrente usa operador y administrador, y comprueba el usuario y la observación
+del ganador. Los tests de las vistas incluyen respuestas y errores fuera de orden.
+
+Queda validar con Java 21 y MySQL en Docker: esta ejecución local usó Java 22 y H2.
+También queda la prueba manual de correo con Mailpit y la revisión con el equipo.
+
+---
+
 ## Día 1 — Entorno funcionando y análisis del código
 
 ### Pruebas de base
