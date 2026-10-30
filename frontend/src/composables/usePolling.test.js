@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { usePolling } from './usePolling'
 
 /**
@@ -44,7 +44,7 @@ it('al montar ejecuta la accion exactamente una vez', () => {
   expect(accion).toHaveBeenCalledTimes(1)
 })
 
-it('a los 5000 ms ejecuta 2 veces en total y a los 10000 ms ejecuta 3 veces', () => {
+it('a los 5000 ms ejecuta 2 veces en total y a los 10000 ms ejecuta 3 veces', async () => {
   const accion = vi.fn()
 
   mount(crearComponente(accion))
@@ -52,15 +52,15 @@ it('a los 5000 ms ejecuta 2 veces en total y a los 10000 ms ejecuta 3 veces', ()
   expect(accion).toHaveBeenCalledTimes(1)
 
   // Avanzamos el reloj 5000 ms: el setInterval dispara una vez más
-  vi.advanceTimersByTime(5000)
+  await vi.advanceTimersByTimeAsync(5000)
   expect(accion).toHaveBeenCalledTimes(2)
 
   // Avanzamos otros 5000 ms (10000 ms en total): otra ejecución
-  vi.advanceTimersByTime(5000)
+  await vi.advanceTimersByTimeAsync(5000)
   expect(accion).toHaveBeenCalledTimes(3)
 })
 
-it('despues de desmontar el componente ya no ejecuta la accion', () => {
+it('despues de desmontar el componente ya no ejecuta la accion', async () => {
   const accion = vi.fn()
 
   const wrapper = mount(crearComponente(accion))
@@ -71,6 +71,46 @@ it('despues de desmontar el componente ya no ejecuta la accion', () => {
   wrapper.unmount()
 
   // Avanzamos el reloj: el interval ya fue cancelado, no debe ejecutarse más
-  vi.advanceTimersByTime(15000)
+  await vi.advanceTimersByTimeAsync(15000)
   expect(accion).toHaveBeenCalledTimes(1)
+})
+
+it('no superpone peticiones si la accion tarda mas que el intervalo y saltea el turno', async () => {
+  let resolverPrimerPedido
+  const accion = vi.fn(() => new Promise((resolve) => {
+    resolverPrimerPedido = resolve
+  }))
+
+  mount(crearComponente(accion))
+  // Al montar arranca la 1ra petición
+  expect(accion).toHaveBeenCalledTimes(1)
+
+  // A los 5000 ms el temporizador dispara, pero el primer pedido sigue en vuelo: se saltea el turno
+  await vi.advanceTimersByTimeAsync(5000)
+  expect(accion).toHaveBeenCalledTimes(1)
+
+  // El primer pedido termina a los 7000 ms
+  resolverPrimerPedido()
+  await flushPromises()
+
+  // Al llegar el siguiente intervalo (10000 ms en total), como ya no hay nada en vuelo, se lanza el 2do pedido
+  await vi.advanceTimersByTimeAsync(5000)
+  expect(accion).toHaveBeenCalledTimes(2)
+})
+
+it('si una peticion falla el ciclo de polling continua en el proximo intervalo', async () => {
+  let debeFallar = true
+  const accion = vi.fn(async () => {
+    if (debeFallar) {
+      throw new Error('Fallo de red simulado')
+    }
+  })
+
+  mount(crearComponente(accion))
+  expect(accion).toHaveBeenCalledTimes(1)
+
+  // A los 5000 ms se ejecuta la siguiente llamada normalmente sin interrumpir el polling
+  debeFallar = false
+  await vi.advanceTimersByTimeAsync(5000)
+  expect(accion).toHaveBeenCalledTimes(2)
 })
