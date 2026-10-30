@@ -10,31 +10,37 @@ const auth = useAuthStore()
 const estado = ref('PENDIENTE') // '' = todas
 const alarmas = ref([])
 const error = ref('')
+// La recarga del listado no debe borrar el resultado de una aceptacion fallida.
+const errorAceptacion = ref('')
+let secuencia = 0
 // Observacion que se va escribiendo en cada alarma pendiente: { [idAlarma]: 'texto' }
 const observaciones = ref({})
 
 async function cargar() {
+  const miSecuencia = ++secuencia
   const params = estado.value ? `?estado=${estado.value}` : ''
   try {
-    alarmas.value = await api(`/api/v1/alarmas${params}`)
+    const resultado = await api(`/api/v1/alarmas${params}`)
+    if (miSecuencia !== secuencia) return
+    alarmas.value = resultado
     error.value = ''
   } catch (e) {
+    if (miSecuencia !== secuencia) return
     error.value = e.message
   }
 }
 
 async function aceptar(alarma) {
+  errorAceptacion.value = ''
   try {
     await api(`/api/v1/alarmas/${alarma.id}/aceptar`, {
       method: 'POST',
       body: { observacion: observaciones.value[alarma.id] || null },
     })
-    error.value = ''
-    await cargar()
   } catch (e) {
-    error.value = e.message
-    await cargar() // por ejemplo, si otro usuario ya la habia aceptado
+    errorAceptacion.value = e.message
   }
+  await cargar() // tambien si otro usuario ya la habia aceptado
 }
 
 // ---- Configuracion (solo ADMIN): umbral y destinatarios de los mails ----
@@ -106,6 +112,7 @@ if (esAdmin) cargarConfig()
   </div>
 
   <p v-if="error" class="error">{{ error }}</p>
+  <p v-if="errorAceptacion" class="error" role="alert">{{ errorAceptacion }}</p>
 
   <table>
     <thead>
