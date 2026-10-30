@@ -38,7 +38,28 @@ afterEach(() => {
     wrapper = null
   }
   vi.useRealTimers()
+  vi.unstubAllGlobals()
   vi.restoreAllMocks()
+})
+
+it.each(['respuesta', 'error'])('ignora una %s vieja cuando cambia la patente', async (tipo) => {
+  let resolverViejo
+  const viejo = new Promise((resolve) => { resolverViejo = resolve })
+  const fetchFalso = vi.fn()
+    .mockReturnValueOnce(viejo)
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [{ ...ORDEN_MONITOREO, patente: 'NUEVA123' }] })
+  vi.stubGlobal('fetch', fetchFalso)
+  wrapper = mount(MonitoreoView)
+  await wrapper.find('input').setValue('NUEVA123')
+  await flushPromises()
+  expect(fetchFalso.mock.calls[1][0]).toContain('patente=NUEVA123')
+  resolverViejo(tipo === 'respuesta'
+    ? { ok: true, status: 200, json: async () => [ORDEN_MONITOREO] }
+    : { ok: false, status: 500, json: async () => ({ mensaje: 'Error viejo' }) })
+  await flushPromises()
+  expect(wrapper.find('tbody').text()).toContain('NUEVA123')
+  expect(wrapper.find('tbody').text()).not.toContain('AA123BB')
+  expect(wrapper.find('.error').exists()).toBe(false)
 })
 
 it('al montarse pide /api/v1/monitoreo?ordenarPor=numeroOrden&direccion=asc y muestra las filas', async () => {
