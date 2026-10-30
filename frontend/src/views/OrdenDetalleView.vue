@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api/http'
+import { textoEstado } from '../utils/estados'
 import { formatearFechaHora, formatearNumero } from '../utils/formato'
 
 const route = useRoute()
@@ -9,6 +10,12 @@ const numero = route.params.numero
 
 const orden = ref(null)
 const error = ref('')
+
+const historial = ref([])
+const errorHistorial = ref('')
+
+const detalleCarga = ref([])
+const errorDetalleCarga = ref('')
 
 async function cargarOrden() {
   try {
@@ -19,7 +26,34 @@ async function cargarOrden() {
   }
 }
 
-onMounted(cargarOrden)
+async function cargarHistorial() {
+  try {
+    historial.value = await api(`/api/v1/ordenes/${numero}/historial-estados`)
+    errorHistorial.value = ''
+  } catch (e) {
+    errorHistorial.value = e.message
+  }
+}
+
+async function cargarDetalleCarga() {
+  try {
+    detalleCarga.value = await api(`/api/v1/ordenes/${numero}/detalle`)
+    errorDetalleCarga.value = ''
+  } catch (e) {
+    errorDetalleCarga.value = e.message
+  }
+}
+
+async function cargarTodo() {
+  await cargarOrden()
+  // Si la cabecera respondió correctamente, consultamos el historial y las mediciones de carga
+  if (orden.value) {
+    cargarHistorial()
+    cargarDetalleCarga()
+  }
+}
+
+onMounted(cargarTodo)
 </script>
 
 <template>
@@ -108,6 +142,67 @@ onMounted(cargarOrden)
         </tbody>
       </table>
     </section>
+
+    <section class="bloque">
+      <h2>Historial de estados (auditoría)</h2>
+      <p v-if="errorHistorial" class="error">{{ errorHistorial }}</p>
+      <table v-else class="tabla-listado">
+        <thead>
+          <tr>
+            <th>Fecha y hora</th>
+            <th>Estado anterior</th>
+            <th>Estado nuevo</th>
+            <th>Usuario</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(h, idx) in historial" :key="idx">
+            <td>{{ formatearFechaHora(h.fechaHora) }}</td>
+            <td>{{ h.estadoAnterior ? textoEstado(h.estadoAnterior) : '(alta de la orden)' }}</td>
+            <td>{{ textoEstado(h.estadoNuevo) }}</td>
+            <td>{{ h.usuario }}</td>
+            <td>{{ h.observaciones || '-' }}</td>
+          </tr>
+          <tr v-if="historial.length === 0">
+            <td colspan="5">No hay cambios de estado registrados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="bloque">
+      <h2>Detalle de carga almacenado</h2>
+      <p class="aclaracion">
+        Registros históricos de la carga. Se almacenan según FRECUENCIA_DETALLE_SEGUNDOS, por lo que puede haber menos registros que datos recibidos en tiempo real.
+      </p>
+      <p v-if="errorDetalleCarga" class="error">{{ errorDetalleCarga }}</p>
+      <template v-else>
+        <p v-if="detalleCarga.length === 0" class="vacio">
+          Esta orden todavía no tiene datos de carga almacenados.
+        </p>
+        <table v-else class="tabla-listado">
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Masa acumulada</th>
+              <th>Densidad</th>
+              <th>Temperatura</th>
+              <th>Caudal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(d, idx) in detalleCarga" :key="idx">
+              <td>{{ formatearFechaHora(d.fechaHora) }}</td>
+              <td>{{ formatearNumero(d.masaAcumulada) }} kg</td>
+              <td>{{ formatearNumero(d.densidad, 3) }}</td>
+              <td>{{ formatearNumero(d.temperatura) }} °C</td>
+              <td>{{ formatearNumero(d.caudal) }} kg/h</td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+    </section>
   </div>
 </template>
 
@@ -118,4 +213,7 @@ onMounted(cargarOrden)
 .contenedor-tablas { display: flex; flex-direction: column; gap: 1.5rem; }
 .bloque h2 { margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #1f3a5f; }
 .bloque table th { width: 40%; background: #f4f5f7; }
+.bloque table.tabla-listado th { width: auto; }
+.aclaracion { color: #52606d; font-size: 0.9rem; margin-top: 0; margin-bottom: 0.75rem; }
+.vacio { color: #52606d; font-style: italic; margin: 0.5rem 0; }
 </style>
