@@ -44,11 +44,12 @@ class AlarmasTest {
     private JavaMailSender mailSender;
 
     @Test
-    void sinSuperarElUmbralNoHayAlarmaNiMail() throws Exception {
+    void temperaturaIgualAlUmbralNoGeneraAlarmaNiMail() throws Exception {
         reset(mailSender);
         TestAuth.ordenEnCarga(mvc, 8001, "ALA001", 10000);
 
-        TestAuth.dato(mvc, 8001, 1000, 40, 3000).andExpect(status().isOk()); // 40 no supera 40
+        TestAuth.dato(mvc, 8001, 1000, 40, 3000).andExpect(status().isOk())
+                .andExpect(jsonPath("$.aceptado").value(true));
 
         verify(mailSender, after(300).never()).send(any(SimpleMailMessage.class));
         TestAuth.get(mvc, "operador", ALARMAS).andExpect(status().isOk())
@@ -88,15 +89,54 @@ class AlarmasTest {
                 .andExpect(jsonPath("$.fechaAceptacion").isNotEmpty())
                 .andExpect(jsonPath("$.observacion").value("Se reviso el camion"));
 
-        // 5. Aceptarla otra vez da 409; una inexistente, 404
+        // 5. Aceptarla otra vez da 409
         TestAuth.post(mvc, "operador", ALARMAS + "/" + id + "/aceptar", "{}").andExpect(status().isConflict());
-        TestAuth.post(mvc, "operador", ALARMAS + "/999999/aceptar", "{}").andExpect(status().isNotFound());
 
         // 6. Despues de aceptada, un nuevo dato sobre el umbral vuelve a alarmar (2do mail)
         TestAuth.dato(mvc, 8002, 4000, 60, 3000);
         verify(mailSender, timeout(2000).times(2)).send(any(SimpleMailMessage.class));
         TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
                 .andExpect(jsonPath("$[?(@.numeroOrden==8002)]", hasSize(1)));
+    }
+
+    @Test
+    void aceptarAlarmaInexistenteDevuelve404() throws Exception {
+        TestAuth.post(mvc, "operador", ALARMAS + "/999999/aceptar", "{}").andExpect(status().isNotFound());
+    }
+
+    @Test
+    void unaAlarmaPendienteNoBloqueaLaDeOtraOrden() throws Exception {
+        reset(mailSender);
+        TestAuth.ordenEnCarga(mvc, 8007, "ALA007", 10000);
+        TestAuth.ordenEnCarga(mvc, 8008, "ALA008", 10000);
+        TestAuth.dato(mvc, 8007, 1000, 45, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8007)]", hasSize(1)));
+
+        TestAuth.dato(mvc, 8008, 1000, 45, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8007)]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.numeroOrden==8008)]", hasSize(1)));
+        verify(mailSender, timeout(2000).times(2)).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void observacionDe501CaracteresSeRechazaYCon500SePuedeAceptar() throws Exception {
+        reset(mailSender);
+        TestAuth.ordenEnCarga(mvc, 8009, "ALA009", 10000);
+        TestAuth.dato(mvc, 8009, 1000, 45, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        verify(mailSender, timeout(2000)).send(any(SimpleMailMessage.class));
+        String pendientes = TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8009)]", hasSize(1)))
+                .andReturn().getResponse().getContentAsString();
+        java.util.List<Integer> ids = JsonPath.read(pendientes, "$[?(@.numeroOrden==8009)].id");
+        String url = ALARMAS + "/" + ids.get(0) + "/aceptar";
+        String observacion = "a".repeat(500);
+        TestAuth.post(mvc, "operador", url, "{\"observacion\":\"" + observacion + "a\"}")
+                .andExpect(status().isBadRequest());
+        TestAuth.post(mvc, "operador", url, "{\"observacion\":\"" + observacion + "\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.observacion").value(observacion));
     }
 
     @Test
