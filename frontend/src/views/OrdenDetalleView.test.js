@@ -145,3 +145,31 @@ it('si la orden no existe muestra el mensaje de error 404', async () => {
   expect(pantalla.text()).toContain('No existe la orden 1001')
   expect(pantalla.find('.error').exists()).toBe(true)
 })
+
+it('en el 404 mantiene el botón de volver y oculta las secciones de datos', async () => {
+  simularBackend({ ok: false, status: 404 })
+  const pantalla = mount(OrdenDetalleView, {
+    global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+  })
+  await flushPromises()
+
+  expect(pantalla.text()).toContain('← Volver al listado')
+  expect(pantalla.text()).not.toContain('Datos generales')
+  expect(pantalla.text()).not.toContain('Historial de estados')
+})
+
+it('mientras la API no responde muestra Cargando... y no el error', async () => {
+  let resolver
+  vi.stubGlobal('fetch', vi.fn(() => new Promise((res) => { resolver = res })))
+  const pantalla = mount(OrdenDetalleView, { global: { stubs: ['RouterLink'] } })
+  await flushPromises()
+
+  expect(pantalla.text()).toContain('Cargando...')
+  expect(pantalla.find('.error').exists()).toBe(false)
+
+  resolver({ ok: true, status: 200, json: async () => ORDEN })
+  await flushPromises()
+
+  expect(pantalla.text()).not.toContain('Cargando...')
+  expect(pantalla.text()).toContain('Datos generales')
+})
