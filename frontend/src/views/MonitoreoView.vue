@@ -2,18 +2,11 @@
 import { reactive, ref, watch } from 'vue'
 import { api } from '../api/http'
 import { usePolling } from '../composables/usePolling'
+import { ESTADOS_ORDEN } from '../utils/estados'
 import { formatearDuracion, formatearEta, formatearNumero, formatearFechaHora } from '../utils/formato'
 
 // Solo el ultimo pedido puede actualizar la tabla y el error.
 let secuencia = 0
-
-const ESTADOS = [
-  { valor: '', texto: 'Todos' },
-  { valor: 'PENDIENTE_PESAJE_INICIAL', texto: '1 · Pendiente de pesaje inicial' },
-  { valor: 'CON_PESAJE_INICIAL', texto: '2 · Cargando' },
-  { valor: 'CERRADA_PARA_CARGA', texto: '3 · Cerrada para carga' },
-  { valor: 'FINALIZADA', texto: '4 · Finalizada' },
-]
 
 // Columnas de la tabla. "clave" es lo que entiende el backend en ?ordenarPor= (sin clave = no ordenable).
 const COLUMNAS = [
@@ -80,7 +73,8 @@ usePolling(cargar, 5000)
     <label>
       Estado
       <select v-model="filtros.estado">
-        <option v-for="e in ESTADOS" :key="e.valor" :value="e.valor">{{ e.texto }}</option>
+        <option value="">Todos</option>
+        <option v-for="e in ESTADOS_ORDEN" :key="e.valor" :value="e.valor">{{ e.texto }}</option>
       </select>
     </label>
     <label>
@@ -107,7 +101,7 @@ usePolling(cargar, 5000)
     </thead>
     <tbody>
       <tr v-for="o in ordenes" :key="o.numeroOrden">
-        <td>{{ o.numeroOrden }}</td>
+        <td><RouterLink :to="`/ordenes/${o.numeroOrden}`">{{ o.numeroOrden }}</RouterLink></td>
         <td>{{ o.estadoNumero }} · {{ o.estadoDescripcion }}</td>
         <td>{{ o.patente }}</td>
         <td>{{ formatearNumero(o.preset, 0) }}</td>

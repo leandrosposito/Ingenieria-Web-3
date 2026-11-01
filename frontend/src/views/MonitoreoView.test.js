@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MonitoreoView from './MonitoreoView.vue'
 
@@ -26,6 +26,10 @@ function simularBackend(datos = [ORDEN_MONITOREO]) {
   return fetchFalso
 }
 
+function montarMonitoreo() {
+  return mount(MonitoreoView, { global: { stubs: { RouterLink: RouterLinkStub } } })
+}
+
 let wrapper
 
 beforeEach(() => {
@@ -49,7 +53,7 @@ it.each(['respuesta', 'error'])('ignora %s de un pedido anterior cuando cambia l
     .mockReturnValueOnce(viejo)
     .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [{ ...ORDEN_MONITOREO, patente: 'NUEVA123' }] })
   vi.stubGlobal('fetch', fetchFalso)
-  wrapper = mount(MonitoreoView)
+  wrapper = montarMonitoreo()
   await wrapper.find('input').setValue('NUEVA123')
   await flushPromises()
   expect(fetchFalso.mock.calls[1][0]).toContain('patente=NUEVA123')
@@ -64,19 +68,21 @@ it.each(['respuesta', 'error'])('ignora %s de un pedido anterior cuando cambia l
 
 it('al montarse pide /api/v1/monitoreo?ordenarPor=numeroOrden&direccion=asc y muestra las filas', async () => {
   const fetchFalso = simularBackend()
-  wrapper = mount(MonitoreoView)
+  wrapper = montarMonitoreo()
   await flushPromises()
 
   expect(fetchFalso.mock.calls[0][0]).toBe('/api/v1/monitoreo?ordenarPor=numeroOrden&direccion=asc')
   const texto = wrapper.text()
-  expect(texto).toContain('1001')
+  const enlace = wrapper.getComponent(RouterLinkStub)
+  expect(enlace.text()).toBe('1001')
+  expect(enlace.props('to')).toBe('/ordenes/1001')
   expect(texto).toContain('AA123BB')
   expect(texto).toContain('1 h 30 min')
 })
 
 it('elegir un estado en el select agrega &estado=... al siguiente pedido', async () => {
   const fetchFalso = simularBackend()
-  wrapper = mount(MonitoreoView)
+  wrapper = montarMonitoreo()
   await flushPromises()
 
   const select = wrapper.find('select')
@@ -91,7 +97,7 @@ it('elegir un estado en el select agrega &estado=... al siguiente pedido', async
 
 it('click en el encabezado "Temp. (°C)" pide ordenarPor=temperatura asc; un segundo click, desc', async () => {
   const fetchFalso = simularBackend()
-  wrapper = mount(MonitoreoView)
+  wrapper = montarMonitoreo()
   await flushPromises()
 
   const thTemp = wrapper.findAll('th').find((th) => th.text().includes('Temp. (°C)'))
@@ -122,7 +128,7 @@ it('si el backend responde error, se ve el mensaje', async () => {
   })
   vi.stubGlobal('fetch', fetchFalso)
 
-  wrapper = mount(MonitoreoView)
+  wrapper = montarMonitoreo()
   await flushPromises()
 
   expect(wrapper.find('.error').exists()).toBe(true)
@@ -133,7 +139,7 @@ it('realiza polling cada 5 s y se detiene al desmontar el componente', async () 
   vi.useFakeTimers()
   const fetchFalso = simularBackend()
 
-  wrapper = mount(MonitoreoView)
+  wrapper = montarMonitoreo()
   await flushPromises()
   expect(fetchFalso).toHaveBeenCalledTimes(1)
 

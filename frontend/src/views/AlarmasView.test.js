@@ -94,13 +94,24 @@ it('acepta con la observacion ingresada y actualiza la lista de pendientes', asy
   const pantalla = montarComo('OPERADOR')
   await flushPromises()
   await pantalla.find('tbody input').setValue('Revisado por Fabri')
+  expect(pantalla.get('tbody button').text()).toBe('Aceptar')
   await pantalla.find('tbody button').trigger('click')
   await flushPromises()
   const [url, opciones] = fetchFalso.mock.calls[1]
   expect(url).toBe('/api/v1/alarmas/1/aceptar')
   expect(opciones.method).toBe('POST')
   expect(JSON.parse(opciones.body)).toEqual({ observacion: 'Revisado por Fabri' })
+  expect(fetchFalso.mock.calls[2][0]).toBe('/api/v1/alarmas?estado=PENDIENTE')
+  expect(fetchFalso.mock.calls[2][1].method).toBe('GET')
   expect(pantalla.text()).toContain('No hay alarmas para mostrar.')
+})
+
+it('un usuario de carga ve la alarma pendiente sin el boton Aceptar', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(respuesta([PENDIENTE])))
+  const pantalla = montarComo('CARGA')
+  await flushPromises()
+  expect(pantalla.get('tbody').text()).toContain('8001')
+  expect(pantalla.find('tbody button').exists()).toBe(false)
 })
 
 it('conserva el error 409 despues de recargar y del siguiente polling', async () => {
