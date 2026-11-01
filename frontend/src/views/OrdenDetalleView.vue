@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api/http'
+import EstadoBadge from '../components/EstadoBadge.vue'
 import { textoEstado } from '../utils/estados'
 import { formatearFechaHora, formatearNumero } from '../utils/formato'
 
@@ -70,7 +71,7 @@ onMounted(cargarTodo)
       <table>
         <tbody>
           <tr><th>Número de orden</th><td>{{ orden.numeroOrden }}</td></tr>
-          <tr><th>Estado</th><td>{{ orden.estadoNumero }} · {{ orden.estadoDescripcion }}</td></tr>
+          <tr><th>Estado</th><td><EstadoBadge :estado="orden.estado" /></td></tr>
           <tr><th>Preset</th><td>{{ formatearNumero(orden.preset, 0) }} kg</td></tr>
           <tr><th>Fecha prevista de carga</th><td>{{ formatearFechaHora(orden.fechaPrevistaCarga) }}</td></tr>
           <tr><th>Fecha de recepción</th><td>{{ formatearFechaHora(orden.fechaRecepcion) }}</td></tr>

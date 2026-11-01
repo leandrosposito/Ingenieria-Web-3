@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { api } from '../api/http'
+import EstadoBadge from '../components/EstadoBadge.vue'
 import { ESTADOS_ORDEN } from '../utils/estados'
 import { formatearFechaHora, formatearNumero } from '../utils/formato'
 
@@ -54,8 +55,12 @@ onMounted(cargarOrdenes)
     </thead>
     <tbody>
       <tr v-for="o in ordenes" :key="o.numeroOrden">
-        <td>{{ o.numeroOrden }}</td>
-        <td>{{ o.estadoNumero }} · {{ o.estadoDescripcion }}</td>
+        <td>
+          <RouterLink :to="`/ordenes/${o.numeroOrden}`" class="link-orden">
+            {{ o.numeroOrden }}
+          </RouterLink>
+        </td>
+        <td><EstadoBadge :estado="o.estado" /></td>
         <td>{{ o.camion?.patente || '-' }}</td>
         <td>{{ o.cliente?.razonSocial || '-' }}</td>
         <td>{{ o.producto?.nombre || '-' }}</td>
@@ -72,4 +77,6 @@ onMounted(cargarOrdenes)
 <style scoped>
 .ayuda { color: #52606d; }
 .acciones { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
+.link-orden { color: #2f6fb5; font-weight: 600; text-decoration: none; }
+.link-orden:hover { text-decoration: underline; }
 </style>
