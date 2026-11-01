@@ -51,7 +51,7 @@ onMounted(cargarOrdenes)
   <p class="ayuda">Listado general de órdenes de carga en el sistema.</p>
   <p v-if="error" class="error">{{ error }}</p>
 
-  <form class="buscador" @submit.prevent="buscarOrden">
+  <form class="buscador" novalidate @submit.prevent="buscarOrden">
     <label for="buscar-orden">Buscar orden por número:</label>
     <input id="buscar-orden" v-model="numeroBuscado" type="number" min="1" step="1" placeholder="Ej: 1001" />
     <button type="submit">Ver orden</button>
