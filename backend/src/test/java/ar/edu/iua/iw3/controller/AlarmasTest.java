@@ -111,6 +111,8 @@ class AlarmasTest {
 
         TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
                 .andExpect(jsonPath("$[?(@.numeroOrden==8003)]", hasSize(1)));
+        // El envio ocurre en otro hilo. Esperarlo antes de que el siguiente test reinicie el mock.
+        verify(mailSender, timeout(2000)).send(any(SimpleMailMessage.class));
     }
 
     @Test
@@ -148,6 +150,7 @@ class AlarmasTest {
         reset(mailSender);
         TestAuth.ordenEnCarga(mvc, 8006, "ALA006", 10000);
         TestAuth.dato(mvc, 8006, 1000, 75, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        verify(mailSender, timeout(2000)).send(any(SimpleMailMessage.class));
 
         // Obtenemos el id de la alarma pendiente
         String pendientes = TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
