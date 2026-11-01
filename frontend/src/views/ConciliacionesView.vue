@@ -79,6 +79,11 @@ onMounted(cargarOrdenes)
           <tr><th>Caudal promedio</th><td>{{ formatearNumero(conciliacion.promedioCaudal) }} kg/h</td></tr>
         </tbody>
       </table>
+      <div class="acciones-orden">
+        <RouterLink :to="`/ordenes/${conciliacion.numeroOrden}`" class="link-orden">
+          Ver orden completa →
+        </RouterLink>
+      </div>
     </section>
   </div>
 </template>
@@ -91,6 +96,9 @@ onMounted(cargarOrdenes)
 .lista tbody tr.elegida { background: #dbe8f6; }
 .detalle th { width: 55%; background: #f4f5f7; }
 .diferencia td, .diferencia th { font-weight: 700; }
+.acciones-orden { margin-top: 1rem; }
+.link-orden { color: #2f6fb5; font-weight: 600; text-decoration: none; }
+.link-orden:hover { text-decoration: underline; }
 button { margin-bottom: 0.75rem; }
 @media (max-width: 800px) { .paneles { grid-template-columns: 1fr; } }
 </style>
