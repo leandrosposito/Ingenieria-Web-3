@@ -121,7 +121,7 @@ Se probó la sección **Órdenes** con el sistema completo levantado con `docker
 |----------|----------|------------|----------|
 | 43       | 0        | 84         | 0        |
 
-**Recorrido en el navegador** (usuario `operador`), usando la orden que genera la colección de Postman (499065501):
+**Recorrido en el navegador** (usuarios `operador` y `tms`), usando la orden que genera la colección de Postman (499065501):
 
 | Caso | Resultado |
 |------|-----------|
@@ -140,6 +140,6 @@ Se probó la sección **Órdenes** con el sistema completo levantado con `docker
 - No se encontraron bugs en `OrdenesView`, `OrdenDetalleView`, `EstadoBadge` ni el router, por lo que no hubo commits de fix.
 - En la máquina de prueba el puerto 3000 estaba ocupado por otro proyecto, así que el frontend se publicó temporalmente en el 3001 con un archivo override fuera del repo. El `docker-compose.yml` no se modificó.
 - Los datos de la orden de Postman incluyen una temperatura de 200 °C (es para disparar la alarma), por eso la conciliación muestra una diferencia de -900 kg.
-- Solo se recorrió la UI con `operador`; el usuario `tms` se ejercitó a través de la colección de Postman (cambios de estado).
+- Se repitió el recorrido con el usuario `tms` (listado, detalle completo y orden inexistente): mismo resultado que con `operador`, sin 403 ni errores de consola.
 
 ---
