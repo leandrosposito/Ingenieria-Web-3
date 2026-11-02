@@ -43,7 +43,14 @@ h2 { color: var(--barra); }
   color: white;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
-.barra strong { letter-spacing: 0.02em; }
+.barra .marca { display: flex; align-items: center; gap: 0.6rem; letter-spacing: 0.02em; }
+.barra .logo {
+  padding: 0.15rem 0.45rem;
+  background: linear-gradient(135deg, #4f9be8, #2f6fb5);
+  border-radius: 5px;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
 .barra nav { display: flex; align-self: stretch; gap: 0.25rem; flex: 1; }
 .barra a {
   display: flex;
@@ -56,7 +63,13 @@ h2 { color: var(--barra); }
 }
 .barra a:hover { color: white; background: rgba(255, 255, 255, 0.07); }
 .barra a.router-link-exact-active { color: white; font-weight: 600; border-bottom-color: #6fb1f0; }
-.barra .usuario { color: var(--barra-link); font-size: 0.9rem; }
+.barra .usuario {
+  padding: 0.25rem 0.7rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #dbe6f4;
+  font-size: 0.85rem;
+}
 .barra button { background: rgba(255, 255, 255, 0.14); }
 .barra button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.25); }
 
@@ -104,6 +117,7 @@ table {
 th, td { padding: 0.6rem 0.85rem; border-bottom: 1px solid #e8ecf1; text-align: left; }
 th { background: var(--encabezado-tabla); font-size: 0.85rem; color: #34465c; }
 tbody tr:last-child > td, tbody tr:last-child > th { border-bottom: 0; }
+tbody tr:nth-child(even) { background: #fafbfd; }
 tbody tr:hover { background: var(--fila-hover); }
 
 /* Login */
@@ -121,5 +135,11 @@ tbody tr:hover { background: var(--fila-hover); }
   gap: 1rem;
 }
 .login label { display: flex; flex-direction: column; gap: 0.3rem; }
+.login h1 { margin: 0; }
+.login .subtitulo { margin: -0.6rem 0 0.25rem; color: var(--texto-suave); font-size: 0.92rem; }
+.login button { padding: 0.65rem 1rem; }
+
+/* Fondo con degradado solo en la pantalla de login */
+body:has(.login) { background: linear-gradient(160deg, #16263d 0%, #2a4a75 55%, #eef1f5 55%); background-attachment: fixed; }
 
 .error { color: var(--peligro); margin: 0; }
