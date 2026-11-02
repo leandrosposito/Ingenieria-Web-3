@@ -110,3 +110,36 @@ docker compose down -v
 ```
 
 ---
+
+## 5. Pruebas funcionales
+
+Se probó la sección **Órdenes** con el sistema completo levantado con `docker compose up --build`.
+
+**Postman / Newman** (`npx newman run postman/IW3-ordenes-de-carga.postman_collection.json`):
+
+| Requests | Fallidos | Assertions | Fallidas |
+|----------|----------|------------|----------|
+| 43       | 0        | 84         | 0        |
+
+**Recorrido en el navegador** (usuario `operador`), usando la orden que genera la colección de Postman (499065501):
+
+| Caso | Resultado |
+|------|-----------|
+| Listado de órdenes | OK, muestra la orden con su badge de estado |
+| Filtro "1 · Pendiente de pesaje inicial" | OK, muestra "No hay órdenes para mostrar." |
+| Filtro "4 · Finalizada" | OK, aparece la orden |
+| Buscador con `0` | OK, mensaje de error y no navega |
+| Buscador con `999999` (inexistente) | OK, muestra "No existe la orden..." y el botón "← Volver al listado" |
+| Detalle de la orden | OK: cabecera completa, historial con 4 cambios en orden cronológico (alta por SAP → Finalizada) y 6 mediciones de carga |
+| Conciliaciones → "Ver orden completa" | OK, abre `/ordenes/499065501` |
+| Consola del navegador | Sin errores |
+
+**Tests y build del frontend:** `npm test` (36 tests, 7 archivos) y `npm run build` pasan.
+
+**Observaciones:**
+- No se encontraron bugs en `OrdenesView`, `OrdenDetalleView`, `EstadoBadge` ni el router, por lo que no hubo commits de fix.
+- En la máquina de prueba el puerto 3000 estaba ocupado por otro proyecto, así que el frontend se publicó temporalmente en el 3001 con un archivo override fuera del repo. El `docker-compose.yml` no se modificó.
+- Los datos de la orden de Postman incluyen una temperatura de 200 °C (es para disparar la alarma), por eso la conciliación muestra una diferencia de -900 kg.
+- Solo se recorrió la UI con `operador`; el usuario `tms` se ejercitó a través de la colección de Postman (cambios de estado).
+
+---
