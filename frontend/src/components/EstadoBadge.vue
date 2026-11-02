@@ -39,7 +39,7 @@ const claseBadge = computed(() => {
   padding: 0.2rem 0.55rem;
   font-size: 0.85rem;
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: 999px;
   line-height: 1.2;
 }
 

@@ -106,9 +106,22 @@ onMounted(cargarOrdenes)
 </template>
 
 <style scoped>
-.ayuda { color: #52606d; }
-.buscador { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
-.acciones { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; }
-.link-orden { color: #2f6fb5; font-weight: 600; text-decoration: none; }
+.ayuda { color: var(--texto-suave); margin-top: 0; margin-bottom: 1.25rem; }
+/* Buscador y filtro: barras de herramientas en forma de tarjeta */
+.buscador, .acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+.buscador input { width: 9rem; }
+.buscador + .error { margin: -0.25rem 0 0.75rem 0.25rem; }
+.link-orden { color: var(--acento); font-weight: 600; text-decoration: none; }
 .link-orden:hover { text-decoration: underline; }
 </style>
