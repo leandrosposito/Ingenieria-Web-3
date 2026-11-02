@@ -63,11 +63,33 @@ onMounted(cargarTodo)
 <template>
   <div class="cabecera-detalle">
     <RouterLink to="/ordenes" class="volver">← Volver al listado</RouterLink>
-    <h1>Orden {{ numero }}</h1>
+    <div class="titulo-orden">
+      <h1>Orden {{ numero }}</h1>
+      <EstadoBadge v-if="orden" :estado="orden.estado" />
+    </div>
   </div>
 
   <p v-if="cargando" class="cargando">Cargando...</p>
   <p v-else-if="error" class="error">{{ error }}</p>
+
+  <div v-if="orden" class="resumen">
+    <div class="kpi">
+      <span class="kpi-etiqueta">Preset</span>
+      <strong>{{ formatearNumero(orden.preset, 0) }} kg</strong>
+    </div>
+    <div class="kpi">
+      <span class="kpi-etiqueta">Masa acumulada</span>
+      <strong>{{ formatearNumero(orden.ultimaMasaAcumulada) }} kg</strong>
+    </div>
+    <div class="kpi">
+      <span class="kpi-etiqueta">Temperatura</span>
+      <strong>{{ formatearNumero(orden.ultimaTemperatura) }} °C</strong>
+    </div>
+    <div class="kpi">
+      <span class="kpi-etiqueta">Caudal</span>
+      <strong>{{ formatearNumero(orden.ultimoCaudal) }} kg/h</strong>
+    </div>
+  </div>
 
   <div v-if="orden" class="contenedor-tablas">
     <section class="bloque">
@@ -213,6 +235,24 @@ onMounted(cargarTodo)
 
 <style scoped>
 .cabecera-detalle { margin-bottom: 1.25rem; }
+.titulo-orden { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
+.titulo-orden h1 { margin: 0; }
+
+/* Tarjetas con los valores más importantes de la orden */
+.resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--acento);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+.kpi-etiqueta { color: var(--texto-suave); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.kpi strong { font-size: 1.35rem; color: var(--barra); }
 .volver { display: inline-block; margin-bottom: 0.5rem; color: var(--acento); text-decoration: none; font-weight: 500; }
 .volver:hover { text-decoration: underline; }
 

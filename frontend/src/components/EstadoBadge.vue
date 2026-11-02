@@ -35,12 +35,22 @@ const claseBadge = computed(() => {
 
 <style scoped>
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.2rem 0.55rem;
   font-size: 0.85rem;
   font-weight: 600;
   border-radius: 999px;
   line-height: 1.2;
+}
+
+.badge::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .badge-pendiente {
