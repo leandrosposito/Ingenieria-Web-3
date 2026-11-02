@@ -17,7 +17,7 @@ watch(
 
 <template>
   <header v-if="auth.estaLogueado" class="barra">
-    <strong>IW3 · Ordenes de carga</strong>
+    <strong>IW3 · Órdenes de carga</strong>
     <nav>
       <RouterLink to="/">Inicio</RouterLink>
       <RouterLink to="/monitoreo">Monitoreo</RouterLink>

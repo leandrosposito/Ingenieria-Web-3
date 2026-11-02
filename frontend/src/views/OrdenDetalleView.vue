@@ -11,6 +11,7 @@ const numero = route.params.numero
 
 const orden = ref(null)
 const error = ref('')
+const cargando = ref(true)
 
 const historial = ref([])
 const errorHistorial = ref('')
@@ -46,7 +47,9 @@ async function cargarDetalleCarga() {
 }
 
 async function cargarTodo() {
+  cargando.value = true
   await cargarOrden()
+  cargando.value = false
   // Si la cabecera respondió correctamente, consultamos el historial y las mediciones de carga
   if (orden.value) {
     cargarHistorial()
@@ -63,7 +66,8 @@ onMounted(cargarTodo)
     <h1>Orden {{ numero }}</h1>
   </div>
 
-  <p v-if="error" class="error">{{ error }}</p>
+  <p v-if="cargando" class="cargando">Cargando...</p>
+  <p v-else-if="error" class="error">{{ error }}</p>
 
   <div v-if="orden" class="contenedor-tablas">
     <section class="bloque">
@@ -208,13 +212,21 @@ onMounted(cargarTodo)
 </template>
 
 <style scoped>
-.cabecera-detalle { margin-bottom: 1rem; }
-.volver { display: inline-block; margin-bottom: 0.5rem; color: #2f6fb5; text-decoration: none; }
+.cabecera-detalle { margin-bottom: 1.25rem; }
+.volver { display: inline-block; margin-bottom: 0.5rem; color: var(--acento); text-decoration: none; font-weight: 500; }
 .volver:hover { text-decoration: underline; }
-.contenedor-tablas { display: flex; flex-direction: column; gap: 1.5rem; }
-.bloque h2 { margin: 0 0 0.5rem 0; font-size: 1.15rem; color: #1f3a5f; }
-.bloque table th { width: 40%; background: #f4f5f7; }
-.bloque table.tabla-listado th { width: auto; }
-.aclaracion { color: #52606d; font-size: 0.9rem; margin-top: 0; margin-bottom: 0.75rem; }
-.vacio { color: #52606d; font-style: italic; margin: 0.5rem 0; }
+
+/* Los bloques de datos van de a dos; historial y mediciones ocupan todo el ancho */
+.contenedor-tablas { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+.bloque:nth-last-child(-n + 2) { grid-column: 1 / -1; }
+.bloque h2 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }
+.bloque table th { width: 42%; background: #f4f6f9; font-weight: 600; }
+.bloque table.tabla-listado th { width: auto; background: var(--encabezado-tabla); }
+.aclaracion { color: var(--texto-suave); font-size: 0.9rem; margin-top: 0; margin-bottom: 0.75rem; }
+.cargando { color: var(--texto-suave); font-style: italic; }
+.vacio { color: var(--texto-suave); font-style: italic; margin: 0.5rem 0; }
+
+@media (max-width: 800px) {
+  .contenedor-tablas { grid-template-columns: 1fr; }
+}
 </style>

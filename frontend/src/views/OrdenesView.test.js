@@ -3,6 +3,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import OrdenesView from './OrdenesView.vue'
 
+const pushFalso = vi.fn()
+vi.mock('vue-router', async () => {
+  const actual = await vi.importActual('vue-router')
+  return { ...actual, useRouter: () => ({ push: pushFalso }) }
+})
+
 const ORDEN = {
   numeroOrden: 1001,
   estado: 'PENDIENTE_PESAJE_INICIAL',
@@ -27,6 +33,7 @@ function simularBackend(cuerpo = [ORDEN], status = 200, ok = true) {
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  pushFalso.mockClear()
 })
 
 it('al montarse pide /api/v1/ordenes y muestra los datos principales', async () => {
@@ -69,4 +76,47 @@ it('si la API responde error muestra el mensaje en pantalla', async () => {
 
   expect(pantalla.text()).toContain('Error al conectar con la base de datos')
   expect(pantalla.find('.error').exists()).toBe(true)
+})
+
+async function buscar(pantalla, valor) {
+  await pantalla.find('#buscar-orden').setValue(valor)
+  await pantalla.find('form.buscador').trigger('submit')
+}
+
+it('el buscador navega al detalle si el número es válido', async () => {
+  simularBackend()
+  const pantalla = mount(OrdenesView, { global: { stubs: ['RouterLink'] } })
+  await flushPromises()
+
+  await buscar(pantalla, '1001')
+
+  expect(pushFalso).toHaveBeenCalledWith('/ordenes/1001')
+  expect(pantalla.text()).not.toContain('Ingresá un número')
+})
+
+it.each(['', '0', '-5', '2.5', 'abc'])('el buscador rechaza "%s" y no navega', async (valor) => {
+  simularBackend()
+  const pantalla = mount(OrdenesView, { global: { stubs: ['RouterLink'] } })
+  await flushPromises()
+
+  await buscar(pantalla, valor)
+
+  expect(pushFalso).not.toHaveBeenCalled()
+  expect(pantalla.text()).toContain('Ingresá un número de orden entero mayor a 0.')
+})
+
+it('mientras la API no responde muestra Cargando... y no "No hay órdenes"', async () => {
+  let resolver
+  vi.stubGlobal('fetch', vi.fn(() => new Promise((res) => { resolver = res })))
+  const pantalla = mount(OrdenesView, { global: { stubs: ['RouterLink'] } })
+  await flushPromises()
+
+  expect(pantalla.text()).toContain('Cargando...')
+  expect(pantalla.text()).not.toContain('No hay órdenes para mostrar.')
+
+  resolver({ ok: true, status: 200, json: async () => [ORDEN] })
+  await flushPromises()
+
+  expect(pantalla.text()).not.toContain('Cargando...')
+  expect(pantalla.text()).toContain('AB123CD')
 })
