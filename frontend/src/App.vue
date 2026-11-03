@@ -17,10 +17,11 @@ watch(
 
 <template>
   <header v-if="auth.estaLogueado" class="barra">
-    <strong>IW3 · Ordenes de carga</strong>
+    <strong class="marca"><span class="logo">IW3</span> Órdenes de carga</strong>
     <nav>
       <RouterLink to="/">Inicio</RouterLink>
       <RouterLink to="/monitoreo">Monitoreo</RouterLink>
+      <RouterLink to="/ordenes">Órdenes</RouterLink>
       <RouterLink to="/alarmas">Alarmas</RouterLink>
       <RouterLink to="/conciliaciones">Conciliaciones</RouterLink>
     </nav>
