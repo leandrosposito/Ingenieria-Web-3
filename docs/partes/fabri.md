@@ -102,3 +102,17 @@ npm run build
    ```
 4. Abrir `http://localhost:8025`: hay **un** mail. Seguir mandando datos (con masa mayor cada vez): no llegan más.
 5. En `http://localhost:5173` entrar como `operador` / `demo1234`: **Monitoreo** muestra la orden con su ETA y el tiempo cargando; **Alarmas** muestra la pendiente. Como `admin` / `demo1234`, en **Alarmas** se ve el formulario de configuración: cambiar el umbral a 60 y el mail, guardar, y mandar un dato de 50 °C: ya no alarma. Con un dato de más de 60 llega el mail al destinatario nuevo. Como `operador` el formulario no aparece. Aceptarla con una observación y mandar otro dato sobre el umbral: llega un segundo mail.
+
+## Día 8 · Prueba funcional con Docker Compose (3 de noviembre de 2026)
+
+Sobre `fabri` en `1891a9e`, se levantó el proyecto aislado `iw3-fabri-dia8` con `docker compose up -d --build` en WSL. La aplicación usó Java 21, MySQL 8.4 y Mailpit. Se crearon dos órdenes vía HTTP con curl y se cargaron mediciones sucesivas. El recorrido de operador y administrador se ejecutó en Chrome con Playwright contra el frontend de localhost:3000.
+
+| Comprobación | Resultado observado |
+|---|---|
+| Polling y ETA | Sin recargar Monitoreo, la orden 480382 pasó de 2 h 0 min a 1 h 30 min. Con preset de 10 000 kg y caudal de 3000 kg/h, las masas acumuladas fueron 4000 y 5500 kg, respectivamente. |
+| Ordenamiento y detalle | Al pulsar la columna Orden, la tabla mostró 480383, 480382 en descendente y el orden inverso en ascendente. El enlace de 480382 abrió su detalle y mostró la patente D480382. |
+| Temperatura alta con alarma pendiente | Con umbral de 40 °C, la medición de 45 °C generó un correo para operaciones@planta.local. Tras enviar 48 y 50 °C, Mailpit seguía mostrando un único correo para la orden. |
+| Aceptación desde la web | El operador aceptó la alarma con la observación «Revisada en prueba funcional del día 8». La fila salió de Pendientes y la observación quedó visible al seleccionar Aceptadas. |
+| Configuración desde la web | El administrador guardó 60 °C y dos destinatarios. Ambos valores persistieron al recargar. Una medición de 50 °C mantuvo el total en un correo. La de 65 °C generó el segundo, dirigido a dia8-a@planta.local y dia8-b@planta.local. |
+
+Se verificó el asunto de la orden en la bandeja web de Mailpit (localhost:8025) y se contaron los mensajes y sus destinatarios mediante su API. Al terminar se restauró la configuración original y se ejecutó `docker compose down`. Pasaron los 54 tests de frontend y los 52 de backend.
