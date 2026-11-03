@@ -2,15 +2,11 @@
 import { reactive, ref, watch } from 'vue'
 import { api } from '../api/http'
 import { usePolling } from '../composables/usePolling'
+import { ESTADOS_ORDEN } from '../utils/estados'
 import { formatearDuracion, formatearEta, formatearNumero, formatearFechaHora } from '../utils/formato'
 
-const ESTADOS = [
-  { valor: '', texto: 'Todos' },
-  { valor: 'PENDIENTE_PESAJE_INICIAL', texto: '1 · Pendiente de pesaje inicial' },
-  { valor: 'CON_PESAJE_INICIAL', texto: '2 · Cargando' },
-  { valor: 'CERRADA_PARA_CARGA', texto: '3 · Cerrada para carga' },
-  { valor: 'FINALIZADA', texto: '4 · Finalizada' },
-]
+// Solo el ultimo pedido puede actualizar la tabla y el error.
+let secuencia = 0
 
 // Columnas de la tabla. "clave" es lo que entiende el backend en ?ordenarPor= (sin clave = no ordenable).
 const COLUMNAS = [
@@ -33,14 +29,18 @@ const error = ref('')
 const actualizado = ref(null)
 
 async function cargar() {
+  const miSecuencia = ++secuencia
   const params = new URLSearchParams({ ordenarPor: filtros.ordenarPor, direccion: filtros.direccion })
   if (filtros.estado) params.set('estado', filtros.estado)
   if (filtros.patente) params.set('patente', filtros.patente)
   try {
-    ordenes.value = await api(`/api/v1/monitoreo?${params}`)
+    const resultado = await api(`/api/v1/monitoreo?${params}`)
+    if (miSecuencia !== secuencia) return // respuesta vieja: la descartamos
+    ordenes.value = resultado
     error.value = ''
     actualizado.value = new Date().toLocaleTimeString('es-AR')
   } catch (e) {
+    if (miSecuencia !== secuencia) return
     error.value = e.message
   }
 }
@@ -73,7 +73,8 @@ usePolling(cargar, 5000)
     <label>
       Estado
       <select v-model="filtros.estado">
-        <option v-for="e in ESTADOS" :key="e.valor" :value="e.valor">{{ e.texto }}</option>
+        <option value="">Todos</option>
+        <option v-for="e in ESTADOS_ORDEN" :key="e.valor" :value="e.valor">{{ e.texto }}</option>
       </select>
     </label>
     <label>
@@ -100,7 +101,7 @@ usePolling(cargar, 5000)
     </thead>
     <tbody>
       <tr v-for="o in ordenes" :key="o.numeroOrden">
-        <td>{{ o.numeroOrden }}</td>
+        <td><RouterLink :to="`/ordenes/${o.numeroOrden}`">{{ o.numeroOrden }}</RouterLink></td>
         <td>{{ o.estadoNumero }} · {{ o.estadoDescripcion }}</td>
         <td>{{ o.patente }}</td>
         <td>{{ formatearNumero(o.preset, 0) }}</td>

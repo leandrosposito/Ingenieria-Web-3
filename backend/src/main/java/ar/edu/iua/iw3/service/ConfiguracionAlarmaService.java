@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 /** Umbral y destinatarios, en la base para cambiarlos sin reiniciar. La primera vez salen de application.properties. */
 @Service
@@ -26,17 +28,35 @@ public class ConfiguracionAlarmaService {
         this.destinatariosIniciales = destinatariosIniciales;
     }
 
+    /**
+     * Parsea una cadena de destinatarios separados por coma, aplicando trim a cada email
+     * y descartando elementos vacios o en blanco, evitando espacios al inicio o al final.
+     */
+    public static List<String> parsearDestinatarios(String destinatarios) {
+        if (destinatarios == null || destinatarios.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(destinatarios.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList();
+    }
+
     @Transactional
     public ConfiguracionAlarma obtener() {
         return repository.findById(ConfiguracionAlarma.ID)
-                .orElseGet(() -> repository.save(new ConfiguracionAlarma(umbralInicial, destinatariosIniciales)));
+                .orElseGet(() -> repository.save(new ConfiguracionAlarma(umbralInicial,
+                        String.join(",", parsearDestinatarios(destinatariosIniciales)))));
     }
 
     @Transactional
     public ConfiguracionAlarma actualizar(ConfiguracionAlarmaRequest req) {
         ConfiguracionAlarma config = obtener();
         config.setTemperaturaUmbral(req.temperaturaUmbral());
-        config.setDestinatarios(String.join(",", req.destinatarios().stream().map(String::trim).toList()));
+        config.setDestinatarios(String.join(",", req.destinatarios().stream()
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .toList()));
         config.setActualizadoPor(UsuarioActual.nombre());
         config.setFechaActualizacion(LocalDateTime.now());
         return config;
