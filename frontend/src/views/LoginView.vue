@@ -30,6 +30,7 @@ async function ingresar() {
 <template>
   <form class="login" @submit.prevent="ingresar">
     <h1>Ingresar</h1>
+    <p class="subtitulo">Sistema de órdenes de carga</p>
     <label>
       Usuario
       <input v-model="username" autocomplete="username" required />
