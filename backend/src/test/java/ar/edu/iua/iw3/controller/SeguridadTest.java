@@ -73,8 +73,29 @@ class SeguridadTest {
 
     @Test
     void consultasLasPuedeUsarCualquierUsuarioLogueado() throws Exception {
-        for (String usuario : new String[]{"sap", "tms", "carga", "operador", "admin"}) {
+        String[] usuarios = {"sap", "tms", "carga", "operador", "admin"};
+        for (String usuario : usuarios) {
             mvc.perform(conRol(usuario, get(BASE))).andExpect(status().isOk());
+            mvc.perform(conRol(usuario, get(BASE + "/999999"))).andExpect(status().isNotFound());
+            mvc.perform(conRol(usuario, get(BASE + "/999999/historial-estados"))).andExpect(status().isNotFound());
+            mvc.perform(conRol(usuario, get(BASE + "/999999/detalle"))).andExpect(status().isNotFound());
+            mvc.perform(conRol(usuario, get(BASE + "/999999/conciliacion"))).andExpect(status().isNotFound());
+        }
+    }
+
+    @Test
+    void consultasSinTokenResponden401() throws Exception {
+        String[] rutas = {
+                BASE,
+                BASE + "/1",
+                BASE + "/1/historial-estados",
+                BASE + "/1/detalle",
+                BASE + "/1/conciliacion"
+        };
+        for (String ruta : rutas) {
+            mvc.perform(get(ruta))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.status").value(401));
         }
     }
 
