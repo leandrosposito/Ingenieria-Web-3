@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 /** Se usa tanto para recibir el chofer desde SAP como para devolverlo (la forma es la misma). */
 public record ChoferDto(
         @Schema(example = "CHO-001") @NotBlank @Size(max = 50) String codigoExterno,
-        @Schema(example = "Juan") @NotBlank String nombre,
-        @Schema(example = "Perez") @NotBlank String apellido,
-        @Schema(example = "30123456") String documento) {
+        @Schema(example = "Juan") @NotBlank @Size(max = 255) String nombre,
+        @Schema(example = "Perez") @NotBlank @Size(max = 255) String apellido,
+        @Schema(example = "30123456") @Size(max = 255) String documento) {
 }
