@@ -11,20 +11,15 @@ const props = defineProps({
 
 const texto = computed(() => textoEstado(props.estado))
 
-const claseBadge = computed(() => {
-  switch (props.estado) {
-    case 'PENDIENTE_PESAJE_INICIAL':
-      return 'badge-pendiente'
-    case 'CON_PESAJE_INICIAL':
-      return 'badge-cargando'
-    case 'CERRADA_PARA_CARGA':
-      return 'badge-cerrada'
-    case 'FINALIZADA':
-      return 'badge-finalizada'
-    default:
-      return 'badge-default'
-  }
-})
+// Que clase de color le toca a cada estado
+const CLASES = {
+  PENDIENTE_PESAJE_INICIAL: 'badge-pendiente',
+  CON_PESAJE_INICIAL: 'badge-cargando',
+  CERRADA_PARA_CARGA: 'badge-cerrada',
+  FINALIZADA: 'badge-finalizada',
+}
+
+const claseBadge = computed(() => CLASES[props.estado] || 'badge-default')
 </script>
 
 <template>

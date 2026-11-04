@@ -16,15 +16,15 @@ const cargando = ref(false)
 const numeroBuscado = ref('')
 const errorBusqueda = ref('')
 
-// Solo enteros positivos: "12" sirve, "0", "-3", "1.5" o "abc" no
+// Solo enteros positivos: 12 sirve; 0, -3, 1.5 o vacio no
 function buscarOrden() {
-  const texto = String(numeroBuscado.value ?? '').trim()
-  if (!/^\d+$/.test(texto) || Number(texto) <= 0) {
+  const numero = Number(numeroBuscado.value)
+  if (!Number.isInteger(numero) || numero <= 0) {
     errorBusqueda.value = 'Ingresá un número de orden entero mayor a 0.'
     return
   }
   errorBusqueda.value = ''
-  router.push(`/ordenes/${Number(texto)}`)
+  router.push(`/ordenes/${numero}`)
 }
 
 async function cargarOrdenes() {
