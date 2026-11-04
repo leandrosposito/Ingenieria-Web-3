@@ -3,8 +3,8 @@ import { onMounted, ref } from 'vue'
 import { api } from '../api/http'
 import { formatearFechaHora, formatearNumero } from '../utils/formato'
 
-const ordenes = ref([]) // ordenes finalizadas (estado 4)
-const seleccionada = ref(null) // numero de la orden elegida
+const ordenes = ref([])
+const seleccionada = ref(null)
 const conciliacion = ref(null)
 const error = ref('')
 
