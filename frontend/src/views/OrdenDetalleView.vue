@@ -19,7 +19,6 @@ const errorHistorial = ref('')
 const detalleCarga = ref([])
 const errorDetalleCarga = ref('')
 
-// Textos que se arman con varios datos (asi la plantilla queda corta)
 const textoChofer = computed(() => {
   const c = orden.value?.chofer
   return c ? `${c.nombre} ${c.apellido} (Doc: ${c.documento})` : '-'
@@ -37,7 +36,6 @@ const textoCisternas = computed(() => {
   return cisternas.map((c) => `C${c.numero}: ${c.capacidadLitros} L`).join(' | ') || '-'
 })
 
-// Cada seccion de la pantalla tiene su propia llamada a la API y su propio error
 async function cargarOrden() {
   try {
     orden.value = await api(`/api/v1/ordenes/${numero}`)
@@ -251,7 +249,6 @@ onMounted(cargarTodo)
 .titulo-orden { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
 .titulo-orden h1 { margin: 0; }
 
-/* Tarjetas con los valores más importantes de la orden */
 .resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .kpi {
   display: flex;
@@ -269,7 +266,6 @@ onMounted(cargarTodo)
 .volver { display: inline-block; margin-bottom: 0.5rem; color: var(--acento); text-decoration: none; font-weight: 500; }
 .volver:hover { text-decoration: underline; }
 
-/* Los bloques de datos van de a dos; los que tienen "ancho" (historial y mediciones) ocupan toda la fila */
 .contenedor-tablas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 .ancho { grid-column: 1 / -1; }
 .bloque h2 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }

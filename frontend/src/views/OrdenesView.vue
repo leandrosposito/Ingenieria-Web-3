@@ -109,7 +109,6 @@ onMounted(cargarOrdenes)
 
 <style scoped>
 .ayuda { color: var(--texto-suave); margin-top: 0; margin-bottom: 1.25rem; }
-/* Buscador y filtro: barras de herramientas en forma de tarjeta */
 .buscador, .acciones {
   display: flex;
   flex-wrap: wrap;

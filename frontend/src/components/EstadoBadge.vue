@@ -11,7 +11,6 @@ const props = defineProps({
 
 const texto = computed(() => textoEstado(props.estado))
 
-// Que clase de color le toca a cada estado
 const CLASES = {
   PENDIENTE_PESAJE_INICIAL: 'badge-pendiente',
   CON_PESAJE_INICIAL: 'badge-cargando',
