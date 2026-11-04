@@ -173,7 +173,8 @@ onMounted(cargarTodo)
     <section class="bloque">
       <h2>Historial de estados (auditoría)</h2>
       <p v-if="errorHistorial" class="error">{{ errorHistorial }}</p>
-      <table v-else class="tabla-listado">
+      <div v-else class="tabla-scroll">
+      <table class="tabla-listado">
         <thead>
           <tr>
             <th>Fecha y hora</th>
@@ -196,6 +197,7 @@ onMounted(cargarTodo)
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <section class="bloque">
@@ -208,7 +210,8 @@ onMounted(cargarTodo)
         <p v-if="detalleCarga.length === 0" class="vacio">
           Esta orden todavía no tiene datos de carga almacenados.
         </p>
-        <table v-else class="tabla-listado">
+        <div v-else class="tabla-scroll">
+        <table class="tabla-listado">
           <thead>
             <tr>
               <th>Fecha y hora</th>
@@ -228,6 +231,7 @@ onMounted(cargarTodo)
             </tr>
           </tbody>
         </table>
+        </div>
       </template>
     </section>
   </div>
@@ -257,7 +261,7 @@ onMounted(cargarTodo)
 .volver:hover { text-decoration: underline; }
 
 /* Los bloques de datos van de a dos; historial y mediciones ocupan todo el ancho */
-.contenedor-tablas { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: start; }
+.contenedor-tablas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 .bloque:nth-last-child(-n + 2) { grid-column: 1 / -1; }
 .bloque h2 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }
 .bloque table th { width: 42%; background: #f4f6f9; font-weight: 600; }
@@ -267,6 +271,6 @@ onMounted(cargarTodo)
 .vacio { color: var(--texto-suave); font-style: italic; margin: 0.5rem 0; }
 
 @media (max-width: 800px) {
-  .contenedor-tablas { grid-template-columns: 1fr; }
+  .contenedor-tablas { grid-template-columns: minmax(0, 1fr); }
 }
 </style>

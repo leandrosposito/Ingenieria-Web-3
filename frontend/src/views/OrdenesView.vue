@@ -69,6 +69,7 @@ onMounted(cargarOrdenes)
     <button @click="cargarOrdenes">Actualizar lista</button>
   </div>
 
+  <div class="tabla-scroll">
   <table>
     <thead>
       <tr>
@@ -103,6 +104,7 @@ onMounted(cargarOrdenes)
       </tr>
     </tbody>
   </table>
+  </div>
 </template>
 
 <style scoped>
