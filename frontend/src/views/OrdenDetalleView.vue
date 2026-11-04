@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api/http'
 import EstadoBadge from '../components/EstadoBadge.vue'
@@ -19,6 +19,25 @@ const errorHistorial = ref('')
 const detalleCarga = ref([])
 const errorDetalleCarga = ref('')
 
+// Textos que se arman con varios datos (asi la plantilla queda corta)
+const textoChofer = computed(() => {
+  const c = orden.value?.chofer
+  return c ? `${c.nombre} ${c.apellido} (Doc: ${c.documento})` : '-'
+})
+const textoCliente = computed(() => {
+  const c = orden.value?.cliente
+  return c ? `${c.razonSocial} (${c.contacto})` : '-'
+})
+const textoProducto = computed(() => {
+  const p = orden.value?.producto
+  return p ? `${p.nombre} - ${p.descripcion}` : '-'
+})
+const textoCisternas = computed(() => {
+  const cisternas = orden.value?.camion?.cisternas || []
+  return cisternas.map((c) => `C${c.numero}: ${c.capacidadLitros} L`).join(' | ') || '-'
+})
+
+// Cada seccion de la pantalla tiene su propia llamada a la API y su propio error
 async function cargarOrden() {
   try {
     orden.value = await api(`/api/v1/ordenes/${numero}`)
@@ -47,10 +66,9 @@ async function cargarDetalleCarga() {
 }
 
 async function cargarTodo() {
-  cargando.value = true
   await cargarOrden()
   cargando.value = false
-  // Si la cabecera respondió correctamente, consultamos el historial y las mediciones de carga
+  // Si la orden no existe (404) no tiene sentido pedir el historial ni las mediciones
   if (orden.value) {
     cargarHistorial()
     cargarDetalleCarga()
@@ -97,8 +115,6 @@ onMounted(cargarTodo)
       <table>
         <tbody>
           <tr><th>Número de orden</th><td>{{ orden.numeroOrden }}</td></tr>
-          <tr><th>Estado</th><td><EstadoBadge :estado="orden.estado" /></td></tr>
-          <tr><th>Preset</th><td>{{ formatearNumero(orden.preset, 0) }} kg</td></tr>
           <tr><th>Fecha prevista de carga</th><td>{{ formatearFechaHora(orden.fechaPrevistaCarga) }}</td></tr>
           <tr><th>Fecha de recepción</th><td>{{ formatearFechaHora(orden.fechaRecepcion) }}</td></tr>
         </tbody>
@@ -112,12 +128,7 @@ onMounted(cargarTodo)
           <tr><th>Patente</th><td>{{ orden.camion?.patente || '-' }}</td></tr>
           <tr><th>Descripción</th><td>{{ orden.camion?.descripcion || '-' }}</td></tr>
           <tr><th>Capacidad total</th><td>{{ formatearNumero(orden.camion?.capacidadTotalLitros, 0) }} L</td></tr>
-          <tr v-if="orden.camion?.cisternas?.length">
-            <th>Cisternas</th>
-            <td>
-              {{ orden.camion.cisternas.map(c => `C${c.numero}: ${c.capacidadLitros} L`).join(' | ') }}
-            </td>
-          </tr>
+          <tr><th>Cisternas</th><td>{{ textoCisternas }}</td></tr>
         </tbody>
       </table>
     </section>
@@ -126,9 +137,9 @@ onMounted(cargarTodo)
       <h2>Chofer, Cliente y Producto</h2>
       <table>
         <tbody>
-          <tr><th>Chofer</th><td>{{ orden.chofer ? `${orden.chofer.nombre} ${orden.chofer.apellido} (Doc: ${orden.chofer.documento})` : '-' }}</td></tr>
-          <tr><th>Cliente</th><td>{{ orden.cliente ? `${orden.cliente.razonSocial} (${orden.cliente.contacto})` : '-' }}</td></tr>
-          <tr><th>Producto</th><td>{{ orden.producto ? `${orden.producto.nombre} - ${orden.producto.descripcion}` : '-' }}</td></tr>
+          <tr><th>Chofer</th><td>{{ textoChofer }}</td></tr>
+          <tr><th>Cliente</th><td>{{ textoCliente }}</td></tr>
+          <tr><th>Producto</th><td>{{ textoProducto }}</td></tr>
         </tbody>
       </table>
     </section>
@@ -158,19 +169,17 @@ onMounted(cargarTodo)
     </section>
 
     <section class="bloque">
-      <h2>Últimos valores registrados</h2>
+      <h2>Último dato recibido</h2>
+      <p class="aclaracion">Masa, temperatura y caudal están en las tarjetas de arriba.</p>
       <table>
         <tbody>
-          <tr><th>Masa acumulada</th><td>{{ formatearNumero(orden.ultimaMasaAcumulada) }} kg</td></tr>
           <tr><th>Densidad</th><td>{{ formatearNumero(orden.ultimaDensidad, 3) }}</td></tr>
-          <tr><th>Temperatura</th><td>{{ formatearNumero(orden.ultimaTemperatura) }} °C</td></tr>
-          <tr><th>Caudal</th><td>{{ formatearNumero(orden.ultimoCaudal) }} kg/h</td></tr>
           <tr><th>Fecha del último dato</th><td>{{ formatearFechaHora(orden.fechaUltimoDato) }}</td></tr>
         </tbody>
       </table>
     </section>
 
-    <section class="bloque">
+    <section class="bloque ancho">
       <h2>Historial de estados (auditoría)</h2>
       <p v-if="errorHistorial" class="error">{{ errorHistorial }}</p>
       <div v-else class="tabla-scroll">
@@ -200,7 +209,7 @@ onMounted(cargarTodo)
       </div>
     </section>
 
-    <section class="bloque">
+    <section class="bloque ancho">
       <h2>Detalle de carga almacenado</h2>
       <p class="aclaracion">
         Registros históricos de la carga. Se almacenan según FRECUENCIA_DETALLE_SEGUNDOS, por lo que puede haber menos registros que datos recibidos en tiempo real.
@@ -260,9 +269,9 @@ onMounted(cargarTodo)
 .volver { display: inline-block; margin-bottom: 0.5rem; color: var(--acento); text-decoration: none; font-weight: 500; }
 .volver:hover { text-decoration: underline; }
 
-/* Los bloques de datos van de a dos; historial y mediciones ocupan todo el ancho */
+/* Los bloques de datos van de a dos; los que tienen "ancho" (historial y mediciones) ocupan toda la fila */
 .contenedor-tablas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
-.bloque:nth-last-child(-n + 2) { grid-column: 1 / -1; }
+.ancho { grid-column: 1 / -1; }
 .bloque h2 { margin: 0 0 0.5rem 0; font-size: 1.05rem; }
 .bloque table th { width: 42%; background: #f4f6f9; font-weight: 600; }
 .bloque table.tabla-listado th { width: auto; background: var(--encabezado-tabla); }
