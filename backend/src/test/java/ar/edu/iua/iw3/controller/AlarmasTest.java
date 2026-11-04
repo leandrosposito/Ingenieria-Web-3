@@ -14,9 +14,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executors;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
@@ -42,11 +44,12 @@ class AlarmasTest {
     private JavaMailSender mailSender;
 
     @Test
-    void sinSuperarElUmbralNoHayAlarmaNiMail() throws Exception {
+    void temperaturaIgualAlUmbralNoGeneraAlarmaNiMail() throws Exception {
         reset(mailSender);
         TestAuth.ordenEnCarga(mvc, 8001, "ALA001", 10000);
 
-        TestAuth.dato(mvc, 8001, 1000, 40, 3000).andExpect(status().isOk()); // 40 no supera 40
+        TestAuth.dato(mvc, 8001, 1000, 40, 3000).andExpect(status().isOk())
+                .andExpect(jsonPath("$.aceptado").value(true));
 
         verify(mailSender, after(300).never()).send(any(SimpleMailMessage.class));
         TestAuth.get(mvc, "operador", ALARMAS).andExpect(status().isOk())
@@ -86,15 +89,54 @@ class AlarmasTest {
                 .andExpect(jsonPath("$.fechaAceptacion").isNotEmpty())
                 .andExpect(jsonPath("$.observacion").value("Se reviso el camion"));
 
-        // 5. Aceptarla otra vez da 409; una inexistente, 404
+        // 5. Aceptarla otra vez da 409
         TestAuth.post(mvc, "operador", ALARMAS + "/" + id + "/aceptar", "{}").andExpect(status().isConflict());
-        TestAuth.post(mvc, "operador", ALARMAS + "/999999/aceptar", "{}").andExpect(status().isNotFound());
 
         // 6. Despues de aceptada, un nuevo dato sobre el umbral vuelve a alarmar (2do mail)
         TestAuth.dato(mvc, 8002, 4000, 60, 3000);
         verify(mailSender, timeout(2000).times(2)).send(any(SimpleMailMessage.class));
         TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
                 .andExpect(jsonPath("$[?(@.numeroOrden==8002)]", hasSize(1)));
+    }
+
+    @Test
+    void aceptarAlarmaInexistenteDevuelve404() throws Exception {
+        TestAuth.post(mvc, "operador", ALARMAS + "/999999/aceptar", "{}").andExpect(status().isNotFound());
+    }
+
+    @Test
+    void unaAlarmaPendienteNoBloqueaLaDeOtraOrden() throws Exception {
+        reset(mailSender);
+        TestAuth.ordenEnCarga(mvc, 8007, "ALA007", 10000);
+        TestAuth.ordenEnCarga(mvc, 8008, "ALA008", 10000);
+        TestAuth.dato(mvc, 8007, 1000, 45, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8007)]", hasSize(1)));
+
+        TestAuth.dato(mvc, 8008, 1000, 45, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8007)]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.numeroOrden==8008)]", hasSize(1)));
+        verify(mailSender, timeout(2000).times(2)).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void observacionDe501CaracteresSeRechazaYCon500SePuedeAceptar() throws Exception {
+        reset(mailSender);
+        TestAuth.ordenEnCarga(mvc, 8009, "ALA009", 10000);
+        TestAuth.dato(mvc, 8009, 1000, 45, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        verify(mailSender, timeout(2000)).send(any(SimpleMailMessage.class));
+        String pendientes = TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8009)]", hasSize(1)))
+                .andReturn().getResponse().getContentAsString();
+        java.util.List<Integer> ids = JsonPath.read(pendientes, "$[?(@.numeroOrden==8009)].id");
+        String url = ALARMAS + "/" + ids.get(0) + "/aceptar";
+        String observacion = "a".repeat(500);
+        TestAuth.post(mvc, "operador", url, "{\"observacion\":\"" + observacion + "a\"}")
+                .andExpect(status().isBadRequest());
+        TestAuth.post(mvc, "operador", url, "{\"observacion\":\"" + observacion + "\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.observacion").value(observacion));
     }
 
     @Test
@@ -109,6 +151,8 @@ class AlarmasTest {
 
         TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
                 .andExpect(jsonPath("$[?(@.numeroOrden==8003)]", hasSize(1)));
+        // El envio ocurre en otro hilo. Esperarlo antes de que el siguiente test reinicie el mock.
+        verify(mailSender, timeout(2000)).send(any(SimpleMailMessage.class));
     }
 
     @Test
@@ -139,5 +183,58 @@ class AlarmasTest {
 
         assertTrue(ms < 1000, "el dato tardo " + ms + " ms: estaria esperando al mail");
         assertTrue(mailEnviado.await(5, TimeUnit.SECONDS), "el mail igual tiene que salir");
+    }
+
+    @Test
+    void dosAceptacionesConcurrentesDan200Y409ConservandoElPrimerOperador() throws Exception {
+        reset(mailSender);
+        TestAuth.ordenEnCarga(mvc, 8006, "ALA006", 10000);
+        TestAuth.dato(mvc, 8006, 1000, 75, 3000).andExpect(jsonPath("$.aceptado").value(true));
+        verify(mailSender, timeout(2000)).send(any(SimpleMailMessage.class));
+
+        // Obtenemos el id de la alarma pendiente
+        String pendientes = TestAuth.get(mvc, "operador", ALARMAS + "?estado=PENDIENTE")
+                .andExpect(jsonPath("$[?(@.numeroOrden==8006)]", hasSize(1)))
+                .andReturn().getResponse().getContentAsString();
+        int id = ((java.util.List<Integer>) JsonPath.read(pendientes, "$[?(@.numeroOrden==8006)].id")).get(0);
+
+        // Autenticamos antes de competir para no medir el tiempo del login.
+        TestAuth.bearer(mvc, "operador");
+        TestAuth.bearer(mvc, "admin");
+        CountDownLatch listos = new CountDownLatch(2);
+        String url = ALARMAS + "/" + id + "/aceptar";
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            var primero = executor.submit(() -> {
+                listos.countDown();
+                assertTrue(listos.await(5, TimeUnit.SECONDS), "falta iniciar el segundo pedido");
+                return TestAuth.post(mvc, "operador", url, "{\"observacion\":\"Revision del operador\"}")
+                        .andReturn().getResponse();
+            });
+            var segundo = executor.submit(() -> {
+                listos.countDown();
+                assertTrue(listos.await(5, TimeUnit.SECONDS), "falta iniciar el primer pedido");
+                return TestAuth.post(mvc, "admin", url, "{\"observacion\":\"Revision del administrador\"}")
+                        .andReturn().getResponse();
+            });
+            // get propaga al test cualquier excepcion de los hilos.
+            var respuestaOperador = primero.get(10, TimeUnit.SECONDS);
+            var respuestaAdmin = segundo.get(10, TimeUnit.SECONDS);
+            assertEquals(java.util.Set.of(200, 409),
+                    new java.util.HashSet<>(java.util.List.of(respuestaOperador.getStatus(), respuestaAdmin.getStatus())));
+
+            boolean ganoOperador = respuestaOperador.getStatus() == 200;
+            String ganador = ganoOperador ? "operador" : "admin";
+            String observacion = ganoOperador ? "Revision del operador" : "Revision del administrador";
+            String filtro = "$[?(@.numeroOrden==8006)]";
+            TestAuth.get(mvc, "operador", ALARMAS + "?estado=ACEPTADA")
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath(filtro, hasSize(1)))
+                    .andExpect(jsonPath(filtro + ".usuarioAceptacion", org.hamcrest.Matchers.contains(ganador)))
+                    .andExpect(jsonPath(filtro + ".observacion", org.hamcrest.Matchers.contains(observacion)));
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS), "quedaron pedidos sin terminar");
+        }
     }
 }

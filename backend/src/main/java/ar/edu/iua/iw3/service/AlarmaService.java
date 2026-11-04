@@ -44,7 +44,7 @@ public class AlarmaService {
         }
         Alarma alarma = alarmaRepository.save(new Alarma(orden, temperatura, umbral));
         publisher.publishEvent(new AlarmaCreada(alarma.getId(), orden.getNumeroOrden(), temperatura, umbral,
-                List.of(config.getDestinatarios().split(","))));
+                ConfiguracionAlarmaService.parsearDestinatarios(config.getDestinatarios())));
     }
 
     @Transactional(readOnly = true)
@@ -57,7 +57,8 @@ public class AlarmaService {
 
     @Transactional
     public AlarmaResponse aceptar(Long id, AceptarAlarmaRequest req) {
-        Alarma alarma = alarmaRepository.findById(id)
+        // Bloqueamos antes de consultar el estado para no pisar otra aceptacion.
+        Alarma alarma = alarmaRepository.findByIdParaAceptar(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No existe la alarma " + id));
         if (alarma.getEstado() == EstadoAlarma.ACEPTADA) {
             throw new ConflictoException("La alarma " + id + " ya fue aceptada por " + alarma.getUsuarioAceptacion());
