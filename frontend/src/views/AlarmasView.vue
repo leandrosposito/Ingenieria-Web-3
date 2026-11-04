@@ -43,7 +43,6 @@ async function aceptar(alarma) {
   await cargar() // tambien si otro usuario ya la habia aceptado
 }
 
-// ---- Configuracion (solo ADMIN): umbral y destinatarios de los mails ----
 const esAdmin = auth.tieneRol('ADMIN')
 const config = ref({ temperaturaUmbral: null, destinatarios: '' }) // destinatarios: texto separado por coma
 const configMensaje = ref('')
@@ -84,7 +83,6 @@ if (esAdmin) cargarConfig()
 <template>
   <h1>Alarmas de temperatura</h1>
 
-  <!-- Solo ADMIN: el backend tambien lo exige (403 para el resto) -->
   <form v-if="esAdmin" class="config" @submit.prevent="guardarConfig">
     <h2>Configuración</h2>
     <label>
@@ -141,7 +139,6 @@ if (esAdmin) cargarConfig()
           <td>{{ formatearFechaHora(a.fechaAceptacion) }}</td>
           <td>{{ a.observacion ?? '-' }}</td>
         </template>
-        <!-- Pendiente: solo OPERADOR y ADMIN pueden aceptarla -->
         <td v-else-if="auth.tieneRol('OPERADOR', 'ADMIN')" colspan="3">
           <input v-model="observaciones[a.id]" placeholder="Observación (opcional)" maxlength="500" />
           <button @click="aceptar(a)">Aceptar</button>

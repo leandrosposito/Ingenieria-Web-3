@@ -71,9 +71,9 @@ Rama `fabri`. Agrega la pantalla de monitoreo que se actualiza sola, el ETA de l
 List<Orden> buscarParaMonitoreo(EstadoOrden estado, String patente, Sort sort);
 ```
 
-Se aplicó a `buscarParaMonitoreo` (monitoreo) y a las dos consultas del listado de órdenes (`findAllByOrderByNumeroOrdenAsc` y `findByEstadoOrderByNumeroOrdenAsc`). El listado además muestra la capacidad total del camión, que sale de sus cisternas (una colección); como no conviene meterla en el mismo `join fetch` (multiplicaría las filas), se le puso `@BatchSize(size = 50)` a `Camion.cisternas`: las cisternas de muchos camiones se traen en **una** consulta en lugar de una por camión.
+Se aplicó a `buscarParaMonitoreo` (monitoreo) y a las dos consultas del listado de órdenes (`findAllByOrderByNumeroOrdenAsc` y `findByEstadoOrderByNumeroOrdenAsc`). El listado además muestra la capacidad total del camión, que sale de sus cisternas (una colección); como no conviene meterla en el mismo `join fetch` (multiplicaría las filas), se le puso `@BatchSize(size = 50)` a `Camion.cisternas`: las cisternas se traen en lotes de hasta 50 camiones en lugar de una consulta por camión.
 
-**Cómo se comprobó.** Se contaron las consultas SQL con 4 órdenes: sin el `join fetch` el monitoreo hacía 12 y el listado 9; con el `join fetch` hace 1 y 2 como máximo, sin importar cuántas órdenes haya. Para verlo a mano se puede poner `spring.jpa.show-sql=true` y llamar a `GET /api/v1/monitoreo`.
+**Cómo se comprobó.** Se contaron las consultas SQL con 4 órdenes: sin el `join fetch` el monitoreo hacía 12 y el listado 9; con el `join fetch`, para esas 4 órdenes, hace 1 y 2 como máximo. Con más camiones, las consultas de cisternas crecen por lotes. Para verlo a mano se puede poner `spring.jpa.show-sql=true` y llamar a `GET /api/v1/monitoreo`.
 
 ---
 
@@ -83,10 +83,10 @@ Se aplicó a `buscarParaMonitoreo` (monitoreo) y a las dos consultas del listado
 
 ```powershell
 cd backend
-.\mvnw.cmd test     # 49 tests en total. Los de Fabri: CalculosMonitoreoTest, MonitoreoTest, AlarmasTest y ConfiguracionAlarmaTest (con el mail simulado)
+.\mvnw.cmd test
 
 cd ..\frontend
-npm test            # 33 tests: incluye polling, monitoreo, configuración y aceptación de alarmas
+npm test
 npm run build
 ```
 
@@ -116,3 +116,24 @@ Sobre `fabri` en `1891a9e`, se levantó el proyecto aislado `iw3-fabri-dia8` con
 | Configuración desde la web | El administrador guardó 60 °C y dos destinatarios. Ambos valores persistieron al recargar. Una medición de 50 °C mantuvo el total en un correo. La de 65 °C generó el segundo, dirigido a dia8-a@planta.local y dia8-b@planta.local. |
 
 Se verificó el asunto de la orden en la bandeja web de Mailpit (localhost:8025) y se contaron los mensajes y sus destinatarios mediante su API. Al terminar se restauró la configuración original y se ejecutó `docker compose down`. Pasaron los 54 tests de frontend y los 52 de backend.
+
+## Día 9 · Calidad y decisiones (3 de noviembre de 2026)
+
+Se actualizó la rama desde main y se revisaron los servicios, controllers y componentes de monitoreo y alarmas. Se quitaron comentarios que repetían el código; no se encontraron imports sin uso ni logs de depuración en esos archivos. Se conserva el log de fallo SMTP porque permite diagnosticar un correo que no salió. La limpieza no cambia el comportamiento.
+
+Las decisiones 60 a 69 de la sección 4 de [decisiones.md](../decisiones.md) explican las respuestas fuera de orden, el bloqueo de aceptación, la normalización de destinatarios y el ciclo del polling, incluidos sus límites. También se corrigieron la frecuencia de Alarmas (10 segundos) y la explicación del tamaño de los lotes de cisternas. Por indicación de Fabri, las tres líneas de resumen se incorporaron directamente al README.
+
+Resultado de las suites completas: **62 tests de backend y 63 de frontend, todos aprobados**. El detalle del área es:
+
+| Suite | Archivo de prueba | Casos |
+|---|---|---:|
+| Backend | AlarmasTest | 9 |
+| Backend | ConfiguracionAlarmaTest | 6 |
+| Backend | MonitoreoTest | 4 |
+| Backend | CalculosMonitoreoTest | 6 |
+| Frontend | AlarmasView.test.js | 8 |
+| Frontend | MonitoreoView.test.js | 7 |
+| Frontend | usePolling.test.js | 5 |
+| Frontend | formato.test.js | 5 |
+
+Son **25 casos del área en backend y 25 en frontend**, contando por separado cada variante de los tests parametrizados. Los comandos fueron `.\mvnw.cmd test` en backend y `npm test` en frontend. Esta ejecución usó H2 y correo simulado; la prueba funcional con Docker y Mailpit corresponde al registro del Día 8, conservado arriba.
