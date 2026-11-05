@@ -117,6 +117,17 @@ table {
 th, td { padding: 0.6rem 0.85rem; border-bottom: 1px solid #e8ecf1; text-align: left; }
 th { background: var(--encabezado-tabla); font-size: 0.85rem; color: #34465c; }
 tbody tr:last-child > td, tbody tr:last-child > th { border-bottom: 0; }
+td { overflow-wrap: anywhere; }
+
+/* En celulares las tablas de listado se desplazan hacia el costado en vez de desbordar la pantalla */
+.tabla-scroll { overflow-x: auto; }
+.tabla-scroll table { min-width: 34rem; }
+
+@media (max-width: 600px) {
+  .barra { flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.5rem 1rem; }
+  .barra nav { order: 3; flex-basis: 100%; overflow-x: auto; min-height: 2.6rem; }
+  .barra a { white-space: nowrap; }
+}
 tbody tr:nth-child(even) { background: #fafbfd; }
 tbody tr:hover { background: var(--fila-hover); }
 

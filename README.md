@@ -18,9 +18,9 @@ Lo damos por logrado cuando una orden pueda recorrer todo su ciclo (recepción �
 
 | Integrante | Rama | Rol principal |
 |---|---|---|
-| Leandro Sposito | `lean` | Parcial (APIs 1 a 5); final: conciliaciones, Docker Compose, Postman y documentación |
-| Fran | `fran` | Final: seguridad (Spring Security + JWT, roles) y login en el frontend |
-| Fabri | `fabri` | Final: monitoreo en tiempo real y alarmas de temperatura por mail |
+| Leandro Sposito | `lean` | Parcial (APIs 1 a 5). Final: pantalla de conciliaciones, sección **Órdenes** del frontend (listado, filtro, buscador y detalle con historial y mediciones), Docker Compose, colección de Postman, README y documentación |
+| Fran | `fran` | Final: seguridad (Spring Security + JWT, roles), validaciones de las APIs y login en el frontend |
+| Fabri | `fabri` | Final: monitoreo en tiempo real (polling), alarmas de temperatura por mail (evento + `@Async`) y optimización de consultas (N+1) |
 
 > Aunque cada uno tenga un área principal, todos tenemos que entender el sistema completo (la evaluación es individual). Lo que implementa cada uno se comparte con el resto.
 
@@ -44,7 +44,7 @@ Componentes del sistema:
 
 - **Backend**: expone las APIs de integración (SAP, TMS, sistema de carga) y la lógica de negocio. Protegido con login y roles (JWT).
 - **Base de datos**: órdenes, entidades sincronizadas, detalle de carga, log de auditoría de estados, usuarios y alarmas.
-- **Frontend**: login, monitoreo en tiempo real, alarmas y conciliaciones (requisito del final).
+- **Frontend**: login, monitoreo en tiempo real, alarmas, conciliaciones y la sección Órdenes (listado, buscador y detalle de cada orden). Se adapta a pantallas de celular (las tablas se desplazan hacia el costado).
 - **Mailpit**: servidor de mail de prueba que recibe las alarmas de temperatura.
 - **Despliegue**: Docker Compose levanta MySQL + backend + frontend + Mailpit con un solo comando.
 
@@ -169,6 +169,7 @@ Si un dato de carga válido supera el umbral (40 °C por defecto) se crea una al
   - [x] Tiempo transcurrido desde el inicio de carga (solo estado 2)
   - [x] Gestión de alarmas: verlas, aceptarlas, registrar usuario, fecha/hora y observación
   - [x] Visualización de conciliaciones (solo estado 4)
+  - [x] Sección Órdenes: listado con filtro por estado, buscador por número y detalle (cabecera, historial de estados y mediciones de carga)
 - [x] Despliegue con Docker Compose (MySQL + backend + frontend + Mailpit)
 - [x] Colección de Postman con un login por usuario de demo; cada request usa el usuario de su rol (incluye un 403 y el flujo de alarmas)
 
@@ -220,7 +221,7 @@ La primera vez tarda unos minutos (descarga imágenes y compila). Cuando termina
 | Swagger (documentación de la API) | http://localhost:8080/swagger-ui.html |
 | Mails de las alarmas (Mailpit) | http://localhost:8025 |
 
-Entrar en http://localhost:3000 con `admin` / `demo1234` (ver la tabla de roles más arriba para los demás usuarios).
+Entrar en http://localhost:3000 con `admin` / `demo1234`. Los demás usuarios de demo (`sap`, `tms`, `carga`, `operador`) tienen la misma contraseña; ver la tabla de roles más arriba.
 
 Comandos útiles:
 
@@ -235,7 +236,9 @@ Para cambiar la contraseña de la base, el secreto del token, el valor inicial d
 
 ### Sin Docker (para desarrollar)
 
-**Requisitos:** JDK 21 y Node 22 o superior. Maven no hace falta: el proyecto trae Maven Wrapper (`mvnw`).
+**Requisitos:** JDK 21 y Node 22 o superior (probado con Node 24). Maven no hace falta: el proyecto trae Maven Wrapper (`mvnw`).
+
+> **Importante:** clonar el repositorio **fuera de OneDrive** (por ejemplo en `C:\Temp`). Si la carpeta está sincronizada, Vitest puede fallar al leer `node_modules`.
 
 **Backend** con base H2 en memoria (sin instalar MySQL; los datos se pierden al apagar):
 
@@ -276,8 +279,11 @@ Para ver los mails de las alarmas sin Docker Compose: `docker run -d -p 8025:802
 
 - **Swagger UI:** http://localhost:8080/swagger-ui.html. Hacer login en `POST /api/v1/auth/login`, copiar el token y pegarlo en el botón **Authorize**.
 - **Postman:** importar `postman/IW3-ordenes-de-carga.postman_collection.json` y correrla con el **Collection Runner** (los requests van encadenados). El primero hace login y guarda el token; el resto lo usa solo. Desde consola: `npx newman run postman/IW3-ordenes-de-carga.postman_collection.json`
-- **Tests del backend:** `cd backend && ./mvnw test` (unitarios, de seguridad y de integración del circuito, el monitoreo y las alarmas).
-- **Tests del frontend:** `cd frontend && npm test`. Para comprobar que compila: `npm run build`.
+- **Tests del backend:** `cd backend && ./mvnw test` → **62 tests, 0 fallos** (unitarios, de seguridad y de integración del circuito, el monitoreo y las alarmas).
+- **Tests del frontend:** `cd frontend && npm ci && npm test` → **63 tests en 10 archivos, 0 fallos**. Para comprobar que compila: `npm run build`.
+- **Postman por consola:** `npx newman run postman/IW3-ordenes-de-carga.postman_collection.json` → **43 requests, 84 aserciones, 0 fallos** (con el sistema levantado).
+
+Cantidades medidas el 4/11/2026 sobre la rama `lean` con los cambios de `main` ya integrados.
 
 ---
 
