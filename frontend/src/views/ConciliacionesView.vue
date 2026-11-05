@@ -3,8 +3,8 @@ import { onMounted, ref } from 'vue'
 import { api } from '../api/http'
 import { formatearFechaHora, formatearNumero } from '../utils/formato'
 
-const ordenes = ref([]) // ordenes finalizadas (estado 4)
-const seleccionada = ref(null) // numero de la orden elegida
+const ordenes = ref([])
+const seleccionada = ref(null)
 const conciliacion = ref(null)
 const error = ref('')
 
@@ -39,6 +39,7 @@ onMounted(cargarOrdenes)
   <div class="paneles">
     <section>
       <button @click="cargarOrdenes">Actualizar lista</button>
+      <div class="tabla-scroll">
       <table class="lista">
         <thead>
           <tr><th>Orden</th><th>Camión</th><th>Cliente</th><th>Pesaje final</th></tr>
@@ -51,8 +52,8 @@ onMounted(cargarOrdenes)
             @click="elegir(o)"
           >
             <td>{{ o.numeroOrden }}</td>
-            <td>{{ o.camion.patente }}</td>
-            <td>{{ o.cliente.razonSocial }}</td>
+            <td>{{ o.camion?.patente || '-' }}</td>
+            <td>{{ o.cliente?.razonSocial || '-' }}</td>
             <td>{{ formatearFechaHora(o.fechaPesajeFinal) }}</td>
           </tr>
           <tr v-if="ordenes.length === 0">
@@ -60,6 +61,7 @@ onMounted(cargarOrdenes)
           </tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <section v-if="conciliacion" class="detalle">
@@ -89,16 +91,16 @@ onMounted(cargarOrdenes)
 </template>
 
 <style scoped>
-.ayuda { color: #52606d; }
-.paneles { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+.ayuda { color: var(--texto-suave); }
+.paneles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; }
 .lista tbody tr { cursor: pointer; }
-.lista tbody tr:hover { background: #eef3f8; }
+.lista tbody tr:hover { background: var(--fila-hover); }
 .lista tbody tr.elegida { background: #dbe8f6; }
 .detalle th { width: 55%; background: #f4f5f7; }
 .diferencia td, .diferencia th { font-weight: 700; }
 .acciones-orden { margin-top: 1rem; }
-.link-orden { color: #2f6fb5; font-weight: 600; text-decoration: none; }
+.link-orden { color: var(--acento); font-weight: 600; text-decoration: none; }
 .link-orden:hover { text-decoration: underline; }
 button { margin-bottom: 0.75rem; }
-@media (max-width: 800px) { .paneles { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .paneles { grid-template-columns: minmax(0, 1fr); } }
 </style>

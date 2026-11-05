@@ -23,7 +23,6 @@ const rutas = [
 export function crearRouter(history = createWebHistory()) {
   const router = createRouter({ history, routes: rutas })
 
-  // Guard: se ejecuta antes de cada navegacion
   router.beforeEach((to) => {
     const auth = useAuthStore()
     if (!to.meta.publica && !auth.estaLogueado) {

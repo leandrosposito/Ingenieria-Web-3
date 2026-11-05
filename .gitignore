@@ -13,3 +13,7 @@ Thumbs.db
 # Build
 target/
 node_modules/
+
+# Notas locales y borradores
+prompts/
+estudio/

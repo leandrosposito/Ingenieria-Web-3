@@ -143,3 +143,34 @@ Se probó la sección **Órdenes** con el sistema completo levantado con `docker
 - Se repitió el recorrido con el usuario `tms` (listado, detalle completo y orden inexistente): mismo resultado que con `operador`, sin 403 ni errores de consola.
 
 ---
+
+---
+
+## 6. Calidad, responsive y documentación (Día 9)
+
+Se revisó la sección Órdenes y Conciliaciones a **375 px de ancho** (celular).
+
+**Qué había mal:** las tablas de listado (Órdenes, Conciliaciones, historial y mediciones del detalle) se salían de la pantalla y la barra de menú no entraba en una línea.
+
+**Qué se cambió:**
+
+| Archivo | Cambio |
+|---|---|
+| `frontend/src/style.css` | Clase `.tabla-scroll` (`overflow-x: auto` + ancho mínimo de la tabla) y, en pantallas de hasta 600 px, la barra de navegación pasa a dos filas con el menú desplazable. |
+| `OrdenesView.vue`, `OrdenDetalleView.vue`, `ConciliacionesView.vue` | Las tablas de listado van dentro de `<div class="tabla-scroll">`. |
+| `ConciliacionesView.vue` | Los colores fijos pasaron a las variables CSS del tema, y `o.camion?.patente` / `o.cliente?.razonSocial` (si faltara un dato, antes la pantalla se rompía). |
+| `ConciliacionesView.vue`, `OrdenDetalleView.vue` | Las grillas usan `minmax(0, 1fr)`: sin eso una columna de grilla no se achica por debajo de su contenido y la página se ensanchaba. |
+
+**Cómo se verificó:** con el sistema en Docker, se abrió cada pantalla en un `iframe` de 375 px y se comparó `scrollWidth` con `clientWidth` de la página: **Inicio, Órdenes, Detalle de orden y Conciliaciones no desbordan** (las tablas anchas se desplazan dentro de su propio contenedor).
+
+**Unidades:** se revisaron las tres vistas: masa y pesajes en `kg`, temperatura en `°C`, caudal en `kg/h`, capacidad de camión y cisternas en `L`. La densidad no lleva unidad (es relativa al agua).
+
+**Números de hoy (4/11/2026, con los cambios de `main` ya integrados):**
+
+| Qué | Resultado |
+|---|---|
+| `./mvnw test` | 62 tests, 0 fallos |
+| `npm test` | 63 tests, 10 archivos, 0 fallos |
+| `npm run build` | OK |
+| Newman (con Docker) | 43 requests, 84 aserciones, 0 fallos |
+

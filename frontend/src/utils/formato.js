@@ -2,7 +2,6 @@
 
 const SIN_DATO = '-'
 
-/** 3725 segundos -> "01:02:05" */
 export function formatearDuracion(segundos) {
   if (segundos === null || segundos === undefined) return SIN_DATO
   const dos = (n) => String(n).padStart(2, '0')
@@ -11,7 +10,6 @@ export function formatearDuracion(segundos) {
   return `${dos(horas)}:${dos(minutos)}:${dos(segundos % 60)}`
 }
 
-/** 1.5 horas -> "1 h 30 min" */
 export function formatearEta(horas) {
   if (horas === null || horas === undefined) return SIN_DATO
   const minutosTotales = Math.round(horas * 60)
@@ -25,7 +23,6 @@ export function formatearNumero(valor, decimales = 1) {
   return Number(valor).toFixed(decimales)
 }
 
-/** "2026-11-10T08:30:00" -> fecha y hora local */
 export function formatearFechaHora(iso) {
   if (!iso) return SIN_DATO
   return new Date(iso).toLocaleString('es-AR')
