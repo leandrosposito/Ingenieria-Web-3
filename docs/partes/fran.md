@@ -55,52 +55,83 @@ Rama `fran`. Agrega autenticación con JWT, roles por endpoint, auditoría con e
 
 ---
 
-## Resultados de pruebas funcionales y de seguridad (Día 8)
+## Trabajo de noviembre
 
-### 1. Tests automáticos
+Durante las jornadas de trabajo de noviembre se identificaron, corrigieron y probaron las siguientes mejoras de seguridad y validaciones:
 
-- **Backend (Maven / JDK 21.0.7):**
-  - Comando: `cd backend; .\mvnw.cmd test`
-  - Resultado: **57 tests ejecutados, 0 fallos, 0 errores, 0 omitidos** (`BUILD SUCCESS`).
-  - Cobertura de seguridad y validaciones:
-    - `SeguridadTest` (9 tests): login exitoso, login inválido, usuario requerido, password > 72 caracteres rechazado con 400 Bad Request, consulta sin token da 401, endpoints protegidos dan 403 con rol incorrecto, consultas GET permitidas a los 5 roles.
-    - `JwtServiceTest` (6 tests): generación de claims y roles, verificación de token adulterado, token expirado, firma inválida, validación de secreto menor a 32 bytes y alerta de clave por defecto.
-    - `ValidacionOrdenTest` (3 tests): validación de cisternas duplicadas (400), nombres mayores a 255 caracteres (400) y longitud válida (201).
-    - `Iw3BackendApplicationTests` (1 test): verificación de arranque limpio sin el warning `Using generated security password`.
-    - Resto de la suite (38 tests): flujo completo de orden, alarmas, monitoreo, pesajes y conciliación.
+### 1. Desactivación del usuario en memoria autogenerado por Spring Security
+- **Problema:** Al no declarar un `UserDetailsService` explícito, Spring Boot autoconfiguraba un usuario en memoria (`UserDetailsServiceAutoConfiguration`) con una contraseña aleatoria en cada arranque y ejecución de tests (`Using generated security password`).
+- **Solución:** Se excluyó dicha clase en `@SpringBootApplication(exclude = { UserDetailsServiceAutoConfiguration.class })` dentro de `Iw3BackendApplication.java`. El login propio de `AuthService` ya valida contra base con BCrypt y emite JWT.
+- **Archivos:** `backend/src/main/java/ar/edu/iua/iw3/Iw3BackendApplication.java`.
 
-- **Frontend (Node v24.14.1 / Vitest 5.0.5):**
-  - Comando: `cd frontend; npm test`
-  - Resultado: **45 tests pasados en 8 suites de prueba**.
-    - `LoginView.test.js`: 5 tests.
-    - `auth.test.js`: 11 tests.
-    - `OrdenesView.test.js`: 11 tests.
-    - `OrdenDetalleView.test.js`: 6 tests.
-    - `ConciliacionesView.test.js`: 2 tests.
-    - `AlarmasView.test.js`: 2 tests.
-    - `EstadoBadge.test.js`: 3 tests.
-    - `formato.test.js`: 5 tests.
-  - Compilación de producción: `npm run build` genera `dist/` sin errores de tipos ni advertencias.
+### 2. Validación de `JWT_SECRET` y alerta de clave por defecto
+- **Problema:** Un secreto menor a 32 bytes lanzaba excepciones crípticas de JJWT (`WeakKeyException`) sin indicar cómo solucionarlo, y el uso del secreto por defecto en el repositorio público podía pasar inadvertido.
+- **Solución:** Se validó en `JwtService` que la longitud sea ≥ 32 caracteres (256 bits para HS256) lanzando `IllegalStateException` con un mensaje claro en español. Se añadió detección del secreto de desarrollo emitiendo un `WARN` visible sin interrumpir el arranque.
+- **Archivos:** `backend/src/main/java/ar/edu/iua/iw3/security/JwtService.java`.
+- **Tests nuevos:** `backend/src/test/java/ar/edu/iua/iw3/security/JwtServiceTest.java` (6 tests).
 
-### 2. Pruebas de integración con Newman / Postman
+### 3. Validaciones en el alta de orden SAP (cisternas y textos)
+- **Problema:** El alta de orden aceptaba camiones con números de cisterna duplicados, y textos de más de 255 caracteres provocaban `DataIntegrityViolationException` de Hibernate que se traducía erróneamente como 409 Conflict.
+- **Solución:** Se incorporó validación `@AssertTrue` en `CamionDto` para impedir cisternas repetidas y anotaciones `@Size(max = 255)` en los campos abiertos de `ChoferDto`, `ClienteDto`, `ProductoDto` y `CamionDto`. Ambos casos responden de forma homogénea con `400 Bad Request`.
+- **Archivos:** `CamionDto.java`, `ChoferDto.java`, `ClienteDto.java`, `ProductoDto.java`.
+- **Tests nuevos:** `backend/src/test/java/ar/edu/iua/iw3/controller/ValidacionOrdenTest.java` (3 tests).
 
-- Colección: `postman/IW3-ordenes-de-carga.postman_collection.json`
-- Comando: `npx newman run postman/IW3-ordenes-de-carga.postman_collection.json`
-- Resultado: **47 requests ejecutados, 92 aserciones exitosas, 0 fallos**.
-- Casos específicos verificados:
-  - `00d [Auth] Consulta con token alterado (401)`: respuesta 401 Unauthorized y cuerpo con `ErrorResponse`.
-  - `00e [Auth] Login con password mayor a 72 caracteres (400)`: respuesta 400 Bad Request con detalle explicativo del límite.
-  - `03c [SAP] Crear orden con cisternas repetidas (400)`: respuesta 400 Bad Request con mensaje indicando números de cisterna duplicados.
-  - `03d [SAP] Crear orden con texto mayor a 255 caracteres (400)`: respuesta 400 Bad Request por Bean Validation antes de llegar a la base de datos.
-  - Circuito completo de la orden de carga: estados 1 a 4, pesajes inicial y final, monitoreo, alarmas y conciliación.
+### 4. Aviso de sesión vencida y descarte de token expirado en frontend
+- **Problema:** Al vencer el token JWT, el usuario era redirigido a `/login` sin explicación. Si volvía a abrir la página con un token vencido en `localStorage`, la app montaba las pantallas vacías hasta que el primer fetch fallaba.
+- **Solución:** En `api()` (`http.js`), ante una respuesta 401 de una sesión activa se invoca `auth.logout(true)`, fijando el mensaje `"Tu sesión venció, ingresá de nuevo"` en `LoginView.vue`. Además, `leerSesion()` (`auth.js`) decodifica el campo `exp` del JWT al arrancar: si ya venció o está corrupto, descarta los datos y deja visible el aviso de inmediato.
+- **Archivos:** `frontend/src/stores/auth.js`, `frontend/src/api/http.js`, `frontend/src/views/LoginView.vue`.
+- **Tests nuevos:** `frontend/src/stores/auth.test.js` (11 tests), `frontend/src/views/LoginView.test.js` (5 tests).
 
-### 3. Pruebas funcionales manuales y verificación de seguridad
+### 5. Límite de BCrypt en contraseña de login
+- **Problema:** BCrypt solo considera los primeros 72 bytes de una contraseña. Contraseñas arbitrariamente extensas consumían ciclos de CPU calculando hashes innecesarios.
+- **Solución:** Se limitó `LoginRequest.password` a `@Size(max = 72)` y `username` a `@Size(max = 50)`, respondiendo `400 Bad Request` antes de invocar a BCrypt.
+- **Archivos:** `backend/src/main/java/ar/edu/iua/iw3/dto/LoginRequest.java`.
+- **Tests nuevos:** `loginConPasswordMayorA72CaracteresDa400` en `SeguridadTest.java`.
 
-1. **Aviso de sesión vencida:**
-   - Al configurar `app.seguridad.jwt-expiracion-minutos=1`, tras un minuto de inactividad cualquier llamada de red recibe 401; la aplicación redirige al login mostrando: *"Tu sesión venció, ingresá de nuevo"*.
-   - Al cerrar sesión manualmente mediante el botón "Salir", se vuelve a `/login` de forma limpia sin mostrar el aviso de vencimiento.
-   - Si un usuario abre la aplicación con un token expirado guardado en `localStorage`, la función `leerSesion` lo decodifica sin peticiones al servidor, limpia el almacenamiento y exhibe el aviso.
-2. **Control de credenciales y repositorio limpio:**
-   - Verificación ejecutada: `git ls-files | Select-String -Pattern "\.env"`. Únicamente se encuentran versionadas las plantillas `.env.example` y `backend/.env.example`. No existen archivos `.env` reales ni credenciales productivas en el repositorio.
-3. **Manejo del usuario por defecto de Spring Security:**
-   - La exclusión de `UserDetailsServiceAutoConfiguration` en `Iw3BackendApplication.java` garantiza que el backend no cree usuarios aleatorios en memoria al arrancar ni emita logs innecesarios.
+### 6. Contrato de consultas GET por rol y casos en Postman
+- **Problema:** Era necesario garantizar que ningún usuario autenticado reciba `403 Forbidden` al consultar información de órdenes, monitoreo o conciliación (incluso no finalizada), y automatizar estos casos en Postman.
+- **Solución:** Se agregaron pruebas de integración en `SeguridadTest.java` verificando `200 OK` en cabecera, historial y mediciones, y `409 Conflict` (no 403) al pedir la conciliación de una orden no finalizada. En la colección de Postman se añadieron las peticiones `00d`, `00e`, `03c` y `03d`.
+- **Archivos:** `backend/src/test/java/ar/edu/iua/iw3/controller/SeguridadTest.java`, `postman/IW3-ordenes-de-carga.postman_collection.json`.
+
+---
+
+## Cómo probar cada mejora a mano
+
+Con la aplicación iniciada (`.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=h2"` y `npm run dev`):
+
+```bash
+# 1. Login con contraseña mayor a 72 caracteres -> 400 Bad Request
+curl -i -X POST http://localhost:8080/api/v1/auth/login -H "Content-Type: application/json" \
+     -d "{\"username\":\"admin\",\"password\":\"$(python -c 'print("a"*73)')\"}"
+
+# 2. Token adulterado -> 401 Unauthorized
+curl -i http://localhost:8080/api/v1/ordenes -H "Authorization: Bearer token-invalido-o-adulterado"
+
+# 3. Alta con cisternas repetidas -> 400 Bad Request
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login -H "Content-Type: application/json" \
+  -d '{"username":"sap","password":"demo1234"}' | grep -o '"token":"[^"]*' | cut -d'"' -f4)
+
+curl -i -X POST http://localhost:8080/api/v1/ordenes -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"numeroOrden":999901,"camion":{"codigoExterno":"C1","patente":"AB123CD","cisternas":[{"numero":1,"capacidadLitros":10000},{"numero":1,"capacidadLitros":5000}]},"chofer":{"codigoExterno":"CH1","nombre":"Juan","apellido":"Perez","documento":"123"},"cliente":{"codigoExterno":"CL1","razonSocial":"Gas S.A."},"producto":{"codigoExterno":"P1","nombre":"Propano"},"fechaPrevistaCarga":"2026-11-10T08:00:00","preset":20000}'
+
+# 4. Alta con texto mayor a 255 caracteres -> 400 Bad Request
+curl -i -X POST http://localhost:8080/api/v1/ordenes -H "Authorization: Bearer $TOKEN" \
+     -H "Content-Type: application/json" \
+     -d "{\"numeroOrden\":999902,\"camion\":{\"codigoExterno\":\"C1\",\"patente\":\"AB123CD\",\"cisternas\":[{\"numero\":1,\"capacidadLitros\":10000}]},\"chofer\":{\"codigoExterno\":\"CH1\",\"nombre\":\"$(python -c 'print("A"*256)')\",\"apellido\":\"Perez\",\"documento\":\"123\"},\"cliente\":{\"codigoExterno\":\"CL1\",\"razonSocial\":\"Gas S.A.\"},\"producto\":{\"codigoExterno\":\"P1\",\"nombre\":\"Propano\"},\"fechaPrevistaCarga\":\"2026-11-10T08:00:00\",\"preset\":20000}"
+
+# 5. Conciliación de orden no finalizada -> 409 Conflict (no 403)
+curl -i http://localhost:8080/api/v1/ordenes/999901/conciliacion -H "Authorization: Bearer $TOKEN"
+```
+
+**En el navegador:**
+- **Sesión vencida:** Configurar `app.seguridad.jwt-expiracion-minutos=1` en `application.properties`. Iniciar sesión en `http://localhost:5173`. Esperar un minuto e intentar cualquier navegación o consulta: la pantalla redirige inmediatamente a `/login` con el mensaje visible *"Tu sesión venció, ingresá de nuevo"*.
+- **Cierre voluntario:** Presionar el botón "Salir" en la barra superior: redirige a `/login` sin mostrar ningún aviso de error.
+
+---
+
+## Totales reales de pruebas automatizadas
+
+- **Backend (Spring Boot Test / JUnit 5):** **65 tests ejecutados, 0 fallos, 0 errores, 0 omitidos** (`BUILD SUCCESS`).
+- **Frontend (Vitest 5.0.5):** **63 tests pasados en 10 archivos de prueba**.
+- **Postman / Newman:** **47 requests ejecutados, 92 aserciones exitosas, 0 fallos**.
