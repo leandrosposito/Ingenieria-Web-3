@@ -35,7 +35,7 @@ async function cargar() {
   if (filtros.patente) params.set('patente', filtros.patente)
   try {
     const resultado = await api(`/api/v1/monitoreo?${params}`)
-    if (miSecuencia !== secuencia) return // respuesta vieja: la descartamos
+    if (miSecuencia !== secuencia) return
     ordenes.value = resultado
     error.value = ''
     actualizado.value = new Date().toLocaleTimeString('es-AR')
@@ -45,7 +45,6 @@ async function cargar() {
   }
 }
 
-// Click en un encabezado: ordena por esa columna; si ya estaba, invierte la direccion
 function ordenarPor(clave) {
   if (!clave) return
   if (filtros.ordenarPor === clave) {

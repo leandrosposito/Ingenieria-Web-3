@@ -122,6 +122,12 @@ Se hace login en `POST /api/v1/auth/login` y el token se envía en cada request 
 
 Cualquier usuario logueado puede hacer las consultas (`GET`). Todos los usuarios de demo tienen la contraseña `demo1234` por defecto (solo para desarrollo; se cambia con la variable `PASSWORD_DEMO`).
 
+### Monitoreo y alarmas: resumen
+
+- Monitoreo actualiza cada 5 segundos, muestra ETA, permite filtrar y ordenar, y enlaza al detalle de la orden; descarta respuestas desordenadas.
+- Las alarmas se consultan cada 10 segundos; el polling evita superponer sus llamadas y la aceptación concurrente devuelve 409 al segundo operador.
+- Los destinatarios se normalizan y el flujo de correo se verificó con Mailpit; las decisiones y pruebas están en [la parte de Fabri](docs/partes/fabri.md).
+
 ### Alarmas de temperatura
 
 Si un dato de carga válido supera el umbral (40 °C por defecto) se crea una alarma y se envía un mail a los destinatarios configurados. El umbral y los destinatarios se guardan en la base y los edita el `ADMIN` desde el formulario de la pantalla **Alarmas** (o con `PUT /api/v1/alarmas/configuracion`), sin reiniciar; las variables `ALARMA_TEMPERATURA_UMBRAL` y `ALARMA_DESTINATARIOS` son solo el valor inicial. No se vuelve a enviar otro mail de esa orden hasta que un operador o administrador acepte la alarma. Con Docker Compose, los mails se ven en http://localhost:8025 (Mailpit).

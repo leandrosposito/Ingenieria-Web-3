@@ -28,10 +28,6 @@ public class ConfiguracionAlarmaService {
         this.destinatariosIniciales = destinatariosIniciales;
     }
 
-    /**
-     * Parsea una cadena de destinatarios separados por coma, aplicando trim a cada email
-     * y descartando elementos vacios o en blanco, evitando espacios al inicio o al final.
-     */
     public static List<String> parsearDestinatarios(String destinatarios) {
         if (destinatarios == null || destinatarios.isBlank()) {
             return List.of();

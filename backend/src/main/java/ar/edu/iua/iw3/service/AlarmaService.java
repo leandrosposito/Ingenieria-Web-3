@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Las alarmas quedan pendientes hasta que un usuario las acepta. */
 @Service
 @RequiredArgsConstructor
 public class AlarmaService {
@@ -40,7 +39,7 @@ public class AlarmaService {
             return;
         }
         if (alarmaRepository.existsByOrdenAndEstado(orden, EstadoAlarma.PENDIENTE)) {
-            return; // ya se aviso y nadie la acepto
+            return;
         }
         Alarma alarma = alarmaRepository.save(new Alarma(orden, temperatura, umbral));
         publisher.publishEvent(new AlarmaCreada(alarma.getId(), orden.getNumeroOrden(), temperatura, umbral,
