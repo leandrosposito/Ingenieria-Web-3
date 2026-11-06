@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -38,6 +39,14 @@ class SeguridadTest {
         mvc.perform(login("noexiste", "demo1234")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void loginConPasswordMayorA72CaracteresDa400() throws Exception {
+        mvc.perform(login("admin", "a".repeat(73)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detalles[0]").value(containsString("72")));
     }
 
     @Test
@@ -84,6 +93,44 @@ class SeguridadTest {
     }
 
     @Test
+    void consultasDeOrdenExistenteFuncionanParaCualquierRol() throws Exception {
+        long nro = 9102;
+        mvc.perform(conRol("sap", post(BASE).contentType(MediaType.APPLICATION_JSON).content(ordenJson(nro))))
+                .andExpect(status().isCreated());
+
+        String[] usuarios = {"sap", "tms", "carga", "operador", "admin"};
+        for (String usuario : usuarios) {
+            mvc.perform(conRol(usuario, get(BASE + "/" + nro)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.numeroOrden").value(nro));
+            mvc.perform(conRol(usuario, get(BASE + "/" + nro + "/historial-estados")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray());
+            mvc.perform(conRol(usuario, get(BASE + "/" + nro + "/detalle")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray());
+        }
+    }
+
+    @Test
+    void conciliacionDeOrdenNoFinalizadaDa409ParaCualquierRol() throws Exception {
+        long nro = 9101;
+        // Creamos la orden en estado 1 (pendiente de pesaje inicial)
+        mvc.perform(conRol("sap", post(BASE).contentType(MediaType.APPLICATION_JSON).content(ordenJson(nro))))
+                .andExpect(status().isCreated());
+
+        // Cada uno de los 5 roles intenta consultar la conciliacion:
+        // Como no esta finalizada, el service responde 409 (OperacionInvalidaException).
+        // Ninguno recibe 403 Forbidden, confirmando el permiso de consulta por rol.
+        String[] usuarios = {"sap", "tms", "carga", "operador", "admin"};
+        for (String usuario : usuarios) {
+            mvc.perform(conRol(usuario, get(BASE + "/" + nro + "/conciliacion")))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.status").value(409));
+        }
+    }
+
+    @Test
     void consultasSinTokenResponden401() throws Exception {
         String[] rutas = {
                 BASE,
@@ -95,7 +142,9 @@ class SeguridadTest {
         for (String ruta : rutas) {
             mvc.perform(get(ruta))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.status").value(401));
+                    .andExpect(jsonPath("$.status").value(401))
+                    .andExpect(jsonPath("$.error").value("Unauthorized"))
+                    .andExpect(jsonPath("$.path").value(ruta));
         }
     }
 
@@ -103,6 +152,18 @@ class SeguridadTest {
     void adminPuedeUsarLosEndpointsDeEscritura() throws Exception {
         // Pasa la seguridad: la orden no existe, asi que llega al service y responde 404 (no 403)
         mvc.perform(conRol("admin", post(BASE + "/999999/cierre"))).andExpect(status().isNotFound());
+    }
+
+    private static String ordenJson(long nro) {
+        return """
+                {"numeroOrden": %d,
+                 "camion": {"codigoExterno": "CAM-SEG-%d", "patente": "AB123CD",
+                            "cisternas": [{"numero": 1, "capacidadLitros": 10000}, {"numero": 2, "capacidadLitros": 5000}]},
+                 "chofer": {"codigoExterno": "CHO-SEG", "nombre": "Juan", "apellido": "Perez", "documento": "30123456"},
+                 "cliente": {"codigoExterno": "CLI-SEG", "razonSocial": "Cliente Seg", "contacto": "test@seg.com"},
+                 "producto": {"codigoExterno": "PRO-SEG", "nombre": "Propano", "descripcion": "GLP"},
+                 "fechaPrevistaCarga": "2026-11-10T08:00:00",
+                 "preset": 20000}""".formatted(nro, nro);
     }
 
     private MockHttpServletRequestBuilder login(String usuario, String password) {

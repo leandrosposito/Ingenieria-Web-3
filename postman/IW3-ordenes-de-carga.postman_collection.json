@@ -327,6 +327,92 @@
           ]
         },
         {
+          "name": "00d [Auth] Consulta con token alterado (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes"
+              ]
+            },
+            "description": "Con un token manipulado o alterado la API responde 401.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.tokenalterado.invalido",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"Formato de error\", () => pm.expect(pm.response.json().status).to.eql(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00e [Auth] Login con password mayor a 72 caracteres (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Contrasena mayor al limite de 72 caracteres de BCrypt: responde 400 Bad Request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Detalle menciona 72\", () => pm.expect(pm.response.text()).to.include(\"72\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "01 [SAP] Crear orden",
           "request": {
             "method": "POST",
@@ -547,6 +633,112 @@
                 "exec": [
                   "pm.test(\"Status 403\", () => pm.response.to.have.status(403));",
                   "pm.test(\"Formato de error\", () => pm.expect(pm.response.json().status).to.eql(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03c [SAP] Crear orden con cisternas repetidas (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes"
+              ]
+            },
+            "description": "No se permite que un camion tenga dos cisternas con el mismo numero: 400 Bad Request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroOrden\": 999901,\n  \"camion\": {\n    \"codigoExterno\": \"CAM-REP\",\n    \"patente\": \"AB123CD\",\n    \"descripcion\": \"Scania cisterna repetida\",\n    \"cisternas\": [\n      { \"numero\": 1, \"capacidadLitros\": 10000 },\n      { \"numero\": 1, \"capacidadLitros\": 5000 }\n    ]\n  },\n  \"chofer\": { \"codigoExterno\": \"CHO-001\", \"nombre\": \"Juan\", \"apellido\": \"Perez\", \"documento\": \"30123456\" },\n  \"cliente\": { \"codigoExterno\": \"CLI-001\", \"razonSocial\": \"Gas del Centro S.A.\", \"contacto\": \"compras@gasdelcentro.com\" },\n  \"producto\": { \"codigoExterno\": \"PRO-001\", \"nombre\": \"Propano\", \"descripcion\": \"Gas licuado de petroleo\" },\n  \"fechaPrevistaCarga\": \"2026-11-10T08:00:00\",\n  \"preset\": 20000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenSap}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Detalle indica cisternas repetidas\", () => pm.expect(pm.response.text()).to.include(\"cisterna\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03d [SAP] Crear orden con texto mayor a 255 caracteres (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ordenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ordenes"
+              ]
+            },
+            "description": "Campos de texto mayores a 255 caracteres son rechazados por Bean Validation con 400 Bad Request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroOrden\": 999902,\n  \"camion\": {\n    \"codigoExterno\": \"CAM-001\",\n    \"patente\": \"AB123CD\",\n    \"descripcion\": \"Scania cisterna doble\",\n    \"cisternas\": [\n      {\n        \"numero\": 1,\n        \"capacidadLitros\": 10000\n      },\n      {\n        \"numero\": 2,\n        \"capacidadLitros\": 5000\n      }\n    ]\n  },\n  \"chofer\": {\n    \"codigoExterno\": \"CHO-001\",\n    \"nombre\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\n    \"apellido\": \"Perez\",\n    \"documento\": \"30123456\"\n  },\n  \"cliente\": {\n    \"codigoExterno\": \"CLI-001\",\n    \"razonSocial\": \"Gas del Centro S.A.\",\n    \"contacto\": \"compras@gasdelcentro.com\"\n  },\n  \"producto\": {\n    \"codigoExterno\": \"PRO-001\",\n    \"nombre\": \"Propano\",\n    \"descripcion\": \"Gas licuado de petroleo\"\n  },\n  \"fechaPrevistaCarga\": \"2026-11-10T08:00:00\",\n  \"preset\": 20000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenSap}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Detalle de validacion\", () => pm.expect(pm.response.json().detalles).to.not.be.empty);"
                 ]
               }
             }
