@@ -55,13 +55,25 @@ h2 { color: var(--barra); }
 .barra a {
   display: flex;
   align-items: center;
+  gap: 0.45rem;
   padding: 0 0.85rem;
   color: var(--barra-link);
   text-decoration: none;
   border-bottom: 3px solid transparent;
   transition: color 0.15s, background 0.15s;
 }
+.barra a .icono-nav {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
 .barra a:hover { color: white; background: rgba(255, 255, 255, 0.07); }
+.barra a:hover .icono-nav,
+.barra a.router-link-exact-active .icono-nav {
+  opacity: 1;
+}
 .barra a.router-link-exact-active { color: white; font-weight: 600; border-bottom-color: #6fb1f0; }
 .barra .usuario {
   padding: 0.25rem 0.7rem;
