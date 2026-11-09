@@ -126,7 +126,7 @@ Cualquier usuario logueado puede hacer las consultas (`GET`). Todos los usuarios
 
 - Monitoreo actualiza cada 5 segundos, muestra ETA, permite filtrar y ordenar, y enlaza al detalle de la orden; descarta respuestas desordenadas.
 - Las alarmas se consultan cada 10 segundos; el polling evita superponer sus llamadas y la aceptación concurrente devuelve 409 al segundo operador.
-- Los destinatarios se normalizan y el flujo de correo se verificó con Mailpit; las decisiones y pruebas están en [la parte de Fabri](docs/partes/fabri.md).
+- Los destinatarios se normalizan y el flujo de correo se verificó con Mailpit; las decisiones técnicas están en [docs/decisiones.md](docs/decisiones.md).
 
 ### Alarmas de temperatura
 
@@ -194,12 +194,11 @@ Si un dato de carga válido supera el umbral (40 °C por defecto) se crea una al
 ├── backend/             # API y lógica de negocio (Spring Boot) + Dockerfile
 ├── frontend/            # Interfaz web (Vue 3 + Vite) + Dockerfile y nginx.conf
 ├── postman/             # Colección de Postman con login y tests del circuito completo
-├── docs/                # Enunciado, especificación OpenAPI, decisiones de diseño y explicación de cada parte
+├── docs/                # Enunciado, especificación OpenAPI y decisiones de diseño
 ├── docker-compose.yml   # Levanta todo el sistema con un comando
 └── .env.example         # Variables de Docker Compose (copiar como .env para cambiarlas)
 ```
 
-Qué hizo cada integrante: [`docs/partes/`](docs/partes) ([`lean.md`](docs/partes/lean.md), [`fran.md`](docs/partes/fran.md), [`fabri.md`](docs/partes/fabri.md)).
 
 Las decisiones de diseño y cómo interpretamos las partes ambiguas del enunciado están en [`docs/decisiones.md`](docs/decisiones.md).
 
